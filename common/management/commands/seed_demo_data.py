@@ -11,6 +11,7 @@ from conferences.models import Conference
 from education.models import EducationCategory, EducationResource
 from guidelines.models import Guideline
 from sitecontact.models import SiteInfo
+from cms.models import VideoBulletin
 
 class Command(BaseCommand):
     help = 'Seeds realistic medical and scientific demonstration data for Scientice'
@@ -498,5 +499,34 @@ class Command(BaseCommand):
         site_info.website_url = "https://scientice.com"
         site_info.save()
         self.stdout.write(self.style.SUCCESS('Seeded SiteInfo contact configuration.'))
+
+        # 10. Seed presenter-style video bulletin landing page
+        VideoBulletin.objects.update_or_create(
+            slug='global-cardiology-bulletin',
+            defaults={
+                'title': 'Global Cardiology Bulletin',
+                'eyebrow': 'GLOBAL CARDIOLOGY BULLETIN',
+                'summary': 'A concise video briefing on the most important developments in cardiovascular medicine.',
+                'script': (
+                    'Welcome to the Global Cardiology Bulletin. In today\'s report, we review '
+                    'the latest evidence shaping heart-failure care, prevention, and digital '
+                    'cardiology. New clinical findings continue to support earlier risk '
+                    'assessment and a patient-specific approach to guideline-directed therapy.'
+                ),
+                'bullet_points': [
+                    'Earlier cardiovascular risk assessment remains a major prevention priority.',
+                    'Guideline-directed heart-failure therapy continues to improve patient outcomes.',
+                    'Remote monitoring is expanding access to specialist cardiac care.',
+                    'Treatment decisions should be tailored to the individual patient and current guidelines.',
+                ],
+                'background_image_url': '',
+
+                'avatar': VideoBulletin.Avatar.FEMALE_DOCTOR,
+                'duration_seconds': 75,
+                'is_published': True,
+                'published_at': timezone.now(),
+            },
+        )
+        self.stdout.write(self.style.SUCCESS('Seeded Global Cardiology Bulletin video report.'))
 
         self.stdout.write(self.style.SUCCESS('Successfully completed all Scientice database seeding!'))

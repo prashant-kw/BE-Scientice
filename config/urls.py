@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/infographics/', include('infographics.urls')),
     path('api/', include('sitecontact.urls')),
     path('api/cms/', include('cms.urls')),
+    path('api/video-reports/', include('cms.public_urls')),
 ]
 
 if settings.DEBUG:

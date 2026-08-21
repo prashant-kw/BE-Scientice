@@ -412,7 +412,7 @@ class UserCMSListSerializer(serializers.ModelSerializer):
 # ----------------------------------------------------------------------
 # 10. Page CMS Serializer
 # ----------------------------------------------------------------------
-from .models import Page
+from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob
 
 class PageCMSSerializer(serializers.ModelSerializer):
     class Meta:
@@ -433,3 +433,133 @@ class PagePublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = ['title', 'slug', 'content', 'updated_at']
+
+
+class VideoBulletinSerializer(serializers.ModelSerializer):
+    backgroundImageUrl = serializers.SerializerMethodField()
+    customAvatarImageUrl = serializers.SerializerMethodField()
+    videoUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VideoBulletin
+        fields = [
+            'id', 'title', 'slug', 'eyebrow', 'summary', 'script', 'bullet_points',
+            'key_highlights', 'previous_events',
+            'background_image', 'background_image_url', 'backgroundImageUrl',
+            'avatar', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
+
+            'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
+            'is_published', 'published_at', 'created_at', 'updated_at',
+        ]
+
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def _url(self, file_value, fallback=''):
+        request = self.context.get('request')
+        return build_absolute_media_url(request, file_value or fallback)
+
+    def get_backgroundImageUrl(self, obj):
+        return self._url(obj.background_image, obj.background_image_url)
+
+    def get_customAvatarImageUrl(self, obj):
+        return self._url(obj.custom_avatar_image)
+
+    def get_videoUrl(self, obj):
+        return self._url(obj.video_file, obj.video_url)
+
+    def validate_title(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_eyebrow(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_summary(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_script(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_bullet_points(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Bullet points must be a list of text values.')
+        if len(value) > 12:
+            raise serializers.ValidationError('A bulletin can contain at most 12 bullet points.')
+        cleaned = []
+        for point in value:
+            if not isinstance(point, str) or not point.strip():
+                raise serializers.ValidationError('Every bullet point must be non-empty text.')
+            cleaned.append(sanitize_plain_text(point))
+        return cleaned
+
+    def validate_background_image(self, value):
+        return validate_and_clean_image(value)
+
+    def validate_custom_avatar_image(self, value):
+        return validate_and_clean_image(value)
+
+
+class VideoBulletinPublicSerializer(VideoBulletinSerializer):
+    class Meta(VideoBulletinSerializer.Meta):
+        fields = [
+            'id', 'title', 'slug', 'eyebrow', 'summary', 'script', 'bullet_points',
+            'key_highlights', 'previous_events',
+            'backgroundImageUrl', 'avatar', 'customAvatarImageUrl', 'videoUrl',
+            'duration_seconds', 'launch_datetime', 'published_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+
+
+
+class VideoBulletinLeadSerializer(serializers.ModelSerializer):
+    bulletin_slug = serializers.SlugRelatedField(
+        source='bulletin', slug_field='slug', queryset=VideoBulletin.objects.filter(is_published=True)
+    )
+
+    class Meta:
+        model = VideoBulletinLead
+        fields = ['id', 'bulletin_slug', 'mobile', 'name', 'email', 'hospital_name', 'profession', 'interests', 'consent', 'created_at']
+
+        read_only_fields = ['id', 'created_at']
+        extra_kwargs = {
+            'name': {'required': True, 'allow_blank': False},
+            'email': {'required': True, 'allow_blank': False},
+            'mobile': {'required': True, 'allow_blank': False},
+        }
+
+    def validate_name(self, value):
+        cleaned = sanitize_plain_text(value).strip()
+        if len(cleaned) < 2:
+            raise serializers.ValidationError('Enter your full name.')
+        return cleaned
+
+    def validate_mobile(self, value):
+        cleaned = sanitize_plain_text(value).strip()
+        digits = ''.join(character for character in cleaned if character.isdigit())
+        if len(digits) < 7 or len(digits) > 15:
+            raise serializers.ValidationError('Enter a valid mobile number with 7 to 15 digits.')
+        return cleaned
+
+    def validate_interests(self, value):
+        if not isinstance(value, list) or len(value) > 12:
+            raise serializers.ValidationError('Interests must be a list containing at most 12 values.')
+        return [sanitize_plain_text(str(item)) for item in value]
+
+
+class VideoGenerationJobSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = VideoGenerationJob
+        fields = ['id', 'status', 'status_display', 'progress', 'task_id', 'error', 'output_file', 'started_at', 'completed_at', 'created_at']
+        read_only_fields = fields
+
+
+from .models import KeyHighlightItem
+
+class KeyHighlightItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KeyHighlightItem
+        fields = ['id', 'number', 'category', 'title', 'summary', 'date_str', 'time_str', 'article_link', 'order', 'is_published', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+

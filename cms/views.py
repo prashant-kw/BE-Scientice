@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from common.permissions import IsContentEditor
+from common.throttling import ContactSubmissionRateThrottle
 
 from accounts.models import User
 from news.models import Article
@@ -17,7 +18,7 @@ from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic
 from therapyareas.models import TherapyArea
 from sitecontact.models import SiteInfo, ContactMessage
-
+from cms.models import VideoBulletinLead
 from .serializers import (
     ArticleCMSSerializer,
     GuidelineCMSSerializer,
@@ -31,6 +32,10 @@ from .serializers import (
     UserCMSListSerializer,
     PageCMSSerializer,
     PagePublicSerializer,
+    VideoBulletinSerializer,
+    VideoBulletinPublicSerializer,
+    VideoBulletinLeadSerializer,
+    VideoGenerationJobSerializer,
 )
 
 # ----------------------------------------------------------------------
@@ -325,7 +330,7 @@ class CMSStatsView(APIView):
 # ----------------------------------------------------------------------
 # 11. Page CMS ViewSet
 # ----------------------------------------------------------------------
-from .models import Page
+from .models import Page, VideoBulletin, VideoGenerationJob
 
 class PageCMSViewSet(viewsets.ModelViewSet):
     queryset = Page.objects.all()
@@ -351,3 +356,147 @@ class PagePublicViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PagePublicSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
+
+
+class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
+    queryset = VideoBulletin.objects.all()
+    serializer_class = VideoBulletinSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'summary', 'script']
+    ordering_fields = ['published_at', 'created_at', 'title']
+    ordering = ['-published_at']
+
+    @action(detail=True, methods=['post'])
+    def toggle_publish(self, request, pk=None):
+        bulletin = self.get_object()
+        bulletin.is_published = not bulletin.is_published
+        bulletin.save(update_fields=['is_published', 'updated_at'])
+        return Response({'id': bulletin.id, 'is_published': bulletin.is_published})
+
+    @action(detail=True, methods=['post'])
+    def generate_video(self, request, pk=None):
+        bulletin = self.get_object()
+
+        # Protection against accidental API credit consumption
+        has_avatar = bool(bulletin.custom_avatar_image or bulletin.avatar in ['female_doctor', 'male_doctor', 'female_anchor', 'male_anchor'])
+        has_bg = bool(bulletin.background_image or bulletin.background_image_url)
+
+        if not has_avatar or not has_bg:
+            missing = []
+            if not has_avatar:
+                missing.append('Presenter Avatar Image')
+            if not has_bg:
+                missing.append('Background Image / URL')
+            return Response(
+                {
+                    'detail': f'Video generation blocked: Please provide mandatory assets ({", ".join(missing)}) before triggering AI video generation.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+        # Clear stuck jobs if requested or if job was queued before worker start
+
+        if request.query_params.get('force') == 'true':
+            bulletin.generation_jobs.filter(
+                status__in=[VideoGenerationJob.Status.QUEUED, VideoGenerationJob.Status.AUDIO,
+                            VideoGenerationJob.Status.AVATAR, VideoGenerationJob.Status.COMPOSING]
+            ).update(status=VideoGenerationJob.Status.FAILED, error='Cancelled by user retry')
+        else:
+            active = bulletin.generation_jobs.filter(
+                status__in=[VideoGenerationJob.Status.QUEUED, VideoGenerationJob.Status.AUDIO,
+                            VideoGenerationJob.Status.AVATAR, VideoGenerationJob.Status.COMPOSING]
+            ).first()
+            if active:
+                return Response(VideoGenerationJobSerializer(active, context={'request': request}).data)
+
+        job = VideoGenerationJob.objects.create(bulletin=bulletin)
+        from .tasks import generate_video_bulletin
+        task = generate_video_bulletin.delay(job.id)
+        job.task_id = task.id
+        job.save(update_fields=['task_id', 'updated_at'])
+        return Response(VideoGenerationJobSerializer(job, context={'request': request}).data, status=status.HTTP_202_ACCEPTED)
+
+
+    @action(detail=True, methods=['get'])
+    def generation_status(self, request, pk=None):
+        bulletin = self.get_object()
+        job = bulletin.generation_jobs.first()
+        if not job:
+            return Response({'detail': 'No generation job exists.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(VideoGenerationJobSerializer(job, context={'request': request}).data)
+
+
+class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = VideoBulletin.objects.filter(is_published=True).order_by('-launch_datetime', '-published_at')
+    serializer_class = VideoBulletinPublicSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'slug'
+
+
+
+class VideoBulletinLeadCreateView(generics.CreateAPIView):
+    serializer_class = VideoBulletinLeadSerializer
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ContactSubmissionRateThrottle]
+
+
+class VideoBulletinLeadCMSViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = VideoBulletinLead.objects.all().order_by('-created_at')
+    serializer_class = VideoBulletinLeadSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['bulletin', 'profession']
+    search_fields = ['mobile', 'name', 'email', 'profession']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="bulletin_subscribers.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Mobile Number', 'Name', 'Email', 'Hospital / Institution', 'Profession', 'Interests', 'Submitted At'])
+
+        qs = self.filter_queryset(self.get_queryset())
+        for lead in qs:
+            interests_str = ', '.join(lead.interests) if isinstance(lead.interests, list) else str(lead.interests)
+            writer.writerow([
+                lead.id,
+                lead.mobile,
+                lead.name or '',
+                lead.email or '',
+                lead.hospital_name or '',
+                lead.profession or '',
+                interests_str,
+                lead.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+
+
+        return response
+
+
+
+
+from .models import KeyHighlightItem
+from .serializers import KeyHighlightItemSerializer
+
+class KeyHighlightItemCMSViewSet(viewsets.ModelViewSet):
+    queryset = KeyHighlightItem.objects.all()
+    serializer_class = KeyHighlightItemSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'summary', 'category']
+    ordering_fields = ['order', 'created_at']
+    ordering = ['order', '-created_at']
+
+class KeyHighlightItemPublicViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = KeyHighlightItem.objects.filter(is_published=True)
+    serializer_class = KeyHighlightItemSerializer
+    permission_classes = [permissions.AllowAny]
+

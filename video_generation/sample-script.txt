@@ -1,0 +1,1 @@
+﻿Welcome to the Scientice Global Cardiology Bulletin. This is a short prototype of our medical news presenter.

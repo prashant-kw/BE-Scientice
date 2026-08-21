@@ -181,7 +181,7 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000',
+    default='http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://localhost:8081,http://127.0.0.1:8081',
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
@@ -196,3 +196,26 @@ SPECTACULAR_SETTINGS = {
 
 # Email settings
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+
+# Background video generation
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default=CELERY_BROKER_URL)
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 60 * 60
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_WORKER_POOL = 'solo'
+VIDEO_GENERATION_ROOT = BASE_DIR / 'video_generation'
+import sys
+
+VIDEO_TTS_COMMAND = config(
+    'VIDEO_TTS_COMMAND',
+    default=f'"{sys.executable}" "{BASE_DIR / "video_generation" / "kokoro_tts.py"}" --script-file {{script_file}} --output {{audio_file}} --voice-gender {{voice_gender}}'
+)
+
+
+
+VIDEO_SADTALKER_COMMAND = config('VIDEO_SADTALKER_COMMAND', default='')
+REPLICATE_API_TOKEN = config('REPLICATE_API_TOKEN', default='')
+
+
+
