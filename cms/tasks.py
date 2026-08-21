@@ -152,38 +152,120 @@ def _split_wav(input_wav_path, chunks_dir, max_chunk_seconds=300):
             chunk_idx += 1
         return chunk_files
 
-def _animate_avatar_replicate_with_retry(image_path, audio_path, output_mp4_path, api_token, max_retries=3):
+def _animate_avatar_replicate_with_retry(
+    image_path,
+    audio_path,
+    output_mp4_path,
+    api_token,
+    generation_retries=1,
+    download_retries=3,
+):
     """
-    Animates avatar for an audio chunk with up to max_retries attempts.
+    Generate an avatar video with Replicate and download it safely.
+
+    Paid generation retries and download retries are intentionally separated.
+    Once Replicate returns a result URL, download failures must never trigger
+    another paid generation request.
     """
     import replicate
+
+    output_mp4_path = Path(output_mp4_path)
+
+    # Reuse a completed local artifact from a previous attempt of the same job.
+    if output_mp4_path.exists() and output_mp4_path.stat().st_size > 0:
+        return
+
     client = replicate.Client(api_token=api_token)
+    video_url = None
+    generation_error = None
 
-    for attempt in range(1, max_retries + 1):
+    # Persist the generated URL next to the target MP4. If generation succeeds
+    # but downloading fails, rerunning the SAME job resumes the download instead
+    # of creating another paid Replicate prediction.
+    url_cache_path = output_mp4_path.with_suffix(output_mp4_path.suffix + '.url')
+    if url_cache_path.exists():
+        cached_url = url_cache_path.read_text(encoding='utf-8').strip()
+        if cached_url:
+            video_url = cached_url
+
+    # STEP 1: paid Replicate generation. Only run when neither the final local
+    # MP4 nor a previously returned Replicate URL is available.
+    if not video_url:
+        for attempt in range(1, generation_retries + 1):
+            try:
+                with open(image_path, 'rb') as img_f, open(audio_path, 'rb') as aud_f:
+                    # Upload source files first to obtain remote URLs
+                    img_file = client.files.create(img_f)
+                    aud_file = client.files.create(aud_f)
+
+                    # Create async prediction & poll up to 10 minutes (prevents HTTP socket timeout)
+                    prediction = client.predictions.create(
+                        version="cjwbw/sadtalker:a519cc0cfebaaeade068b23899165a11ec76aaa1d2b313d40d214f204ec957a3",
+                        input={
+                            "source_image": img_file.urls["get"],
+                            "driven_audio": aud_file.urls["get"],
+                            "still": True,
+                            "preprocess": "full",
+                            "enhancer": "gfpgan",
+                        },
+                    )
+
+                    # Poll prediction until completion
+                    prediction.wait()
+
+                    if prediction.status != "succeeded":
+                        raise RuntimeError(f"Replicate prediction failed with status '{prediction.status}': {prediction.error}")
+
+                    output = prediction.output
+
+                video_url = str(output).strip()
+                if not video_url:
+                    raise RuntimeError('Replicate completed but returned no video URL.')
+
+                # Save immediately, before attempting the download.
+                url_cache_path.write_text(video_url, encoding='utf-8')
+                break
+            except Exception as err:
+                generation_error = err
+                if attempt < generation_retries:
+                    time.sleep(4 * attempt)
+
+
+        if not video_url:
+            raise RuntimeError(
+                f'Replicate generation failed after {generation_retries} attempt(s): {generation_error}'
+            )
+
+    # STEP 2: download the already-generated asset. Retrying this is safe and
+    # does not create another Replicate generation request.
+    temp_path = output_mp4_path.with_suffix(output_mp4_path.suffix + '.part')
+    download_error = None
+
+    for attempt in range(1, download_retries + 1):
         try:
-            with open(image_path, 'rb') as img_f, open(audio_path, 'rb') as aud_f:
-                output = client.run(
-                    "cjwbw/sadtalker:a519cc0cfebaaeade068b23899165a11ec76aaa1d2b313d40d214f204ec957a3",
-                    input={
-                        "source_image": img_f,
-                        "driven_audio": aud_f,
-                        "still": True,
-                        "preprocess": "full",
-                        "enhancer": "gfpgan",
-                    }
-                )
+            with requests.get(video_url, timeout=300, stream=True) as resp:
+                resp.raise_for_status()
+                with open(temp_path, 'wb') as f:
+                    for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
 
-            video_url = str(output)
+            if not temp_path.exists() or temp_path.stat().st_size == 0:
+                raise RuntimeError('Downloaded Replicate video is empty.')
 
-            resp = requests.get(video_url, timeout=300)
-            resp.raise_for_status()
-            with open(output_mp4_path, 'wb') as f:
-                f.write(resp.content)
+            temp_path.replace(output_mp4_path)
             return
         except Exception as err:
-            if attempt == max_retries:
-                raise RuntimeError(f"Replicate API call failed after {max_retries} attempts: {str(err)}")
-            time.sleep(4 * attempt)
+            download_error = err
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
+            if attempt < download_retries:
+                time.sleep(4 * attempt)
+
+    raise RuntimeError(
+        'Replicate generation succeeded, but downloading the generated video '
+        f'failed after {download_retries} attempts: {download_error}'
+    )
 
 
 
@@ -245,7 +327,7 @@ def generate_video_bulletin(self, job_id):
 
                     # Check disk cache: if already rendered in a previous partial run, reuse it!
                     if not chunk_mp4.exists() or chunk_mp4.stat().st_size == 0:
-                        _animate_avatar_replicate_with_retry(studio_still, chunk_wav, chunk_mp4, replicate_token, max_retries=3)
+                        _animate_avatar_replicate_with_retry(studio_still, chunk_wav, chunk_mp4, replicate_token)
                     rendered_mp4s.append(chunk_mp4)
 
                 _update(job, VideoGenerationJob.Status.COMPOSING, 76, f'Stitching {total_chunks} generated video chunks via FFmpeg…')
@@ -264,7 +346,7 @@ def generate_video_bulletin(self, job_id):
             else:
                 replicate_mp4 = root / 'replicate-avatar.mp4'
                 if not replicate_mp4.exists() or replicate_mp4.stat().st_size == 0:
-                    _animate_avatar_replicate_with_retry(studio_still, audio_file, replicate_mp4, replicate_token, max_retries=3)
+                    _animate_avatar_replicate_with_retry(studio_still, audio_file, replicate_mp4, replicate_token)
                 source_avatar_mp4 = replicate_mp4
 
 
@@ -284,23 +366,52 @@ def generate_video_bulletin(self, job_id):
         _lower_third(bulletin.title, overlay_file, bullet_points=b_points)
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-        # Dynamic scrolling ticker filter: overlays lower third PNG bar + animated moving news text
-        escaped_ticker = ticker_str.replace(":", "\\:").replace("'", "\\'").replace('"', '\\"')
+        # Dynamic scrolling ticker filter: overlays lower third PNG bar + animated moving news text.
+        # Escape characters that FFmpeg drawtext treats specially.
+        escaped_ticker = (
+            ticker_str
+            .replace("\\", "\\\\")
+            .replace(":", "\\:")
+            .replace("'", "\\'")
+            .replace('"', '\\"')
+            .replace("%", "\\%")
+        )
         filter_str = (
             f"[0:v]scale=1280:720[base];"
             f"[base][1:v]overlay=0:0:format=auto[v1];"
-            f"[v1]drawtext=text='{escaped_ticker}':fontcolor=white:fontsize=14:x=1280-w-mod(t*115\\,1280+tw):y=691[v2]"
+            f"[v1]drawtext=text='{escaped_ticker}':"
+            f"fontcolor=white:fontsize=14:"
+            f"x=w-mod(t*115\\,w+tw):y=691:font='Sans'[v2]"
         )
 
-
-
-        subprocess.run([
-            ffmpeg, '-y', '-i', str(source_avatar_mp4), '-i', str(overlay_file),
-            '-filter_complex', filter_str,
-            '-map', '[v2]', '-map', '0:a',
-            '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
-            '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', str(final_file)
-        ], check=True, timeout=20 * 60)
+        try:
+            subprocess.run(
+                [
+                    ffmpeg, '-y',
+                    '-i', str(source_avatar_mp4),
+                    '-i', str(overlay_file),
+                    '-filter_complex', filter_str,
+                    '-map', '[v2]',
+                    '-map', '0:a?',
+                    '-c:v', 'libx264',
+                    '-preset', 'medium',
+                    '-crf', '20',
+                    '-pix_fmt', 'yuv420p',
+                    '-c:a', 'aac',
+                    '-b:a', '160k',
+                    '-movflags', '+faststart',
+                    str(final_file),
+                ],
+                check=True,
+                timeout=20 * 60,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            ffmpeg_error = exc.stderr or exc.stdout or str(exc)
+            raise RuntimeError(
+                f"FFmpeg final composition failed:\n{ffmpeg_error[-3500:]}"
+            ) from exc
 
 
 
