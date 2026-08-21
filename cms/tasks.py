@@ -24,7 +24,10 @@ def _run_template(template, **values):
     if not template:
         raise RuntimeError('The required generation command is not configured.')
     command = template.format(**{key: str(value) for key, value in values.items()})
-    subprocess.run(shlex.split(command, posix=False), check=True, timeout=45 * 60)
+    # Strip quotes on individual arguments for cross-platform subprocess.run execution
+    args = [arg.strip('"\'') for arg in shlex.split(command, posix=(settings.OS_NAME != 'nt' if hasattr(settings, 'OS_NAME') else True))]
+    subprocess.run(args, check=True, timeout=45 * 60)
+
 
 
 def _studio_still(background_path, avatar_path, output_path):
