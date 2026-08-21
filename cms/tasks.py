@@ -362,27 +362,8 @@ def generate_video_bulletin(self, job_id):
 
         _update(job, VideoGenerationJob.Status.COMPOSING, 78)
         b_points = bulletin.bullet_points if isinstance(bulletin.bullet_points, list) else []
-        ticker_str = "   •   ".join(b_points) if b_points else f"CARD IOLOGY NEWSROOM  •  {bulletin.title}"
         _lower_third(bulletin.title, overlay_file, bullet_points=b_points)
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-
-        # Dynamic scrolling ticker filter: overlays lower third PNG bar + animated moving news text.
-        # Escape characters that FFmpeg drawtext treats specially.
-        escaped_ticker = (
-            ticker_str
-            .replace("\\", "\\\\")
-            .replace(":", "\\:")
-            .replace("'", "\\'")
-            .replace('"', '\\"')
-            .replace("%", "\\%")
-        )
-        filter_str = (
-            f"[0:v]scale=1280:720[base];"
-            f"[base][1:v]overlay=0:0:format=auto[v1];"
-            f"[v1]drawtext=text='{escaped_ticker}':"
-            f"fontcolor=white:fontsize=14:"
-            f"x=w-mod(t*115\\,w+tw):y=691:font='Sans'[v2]"
-        )
 
         try:
             subprocess.run(
@@ -390,8 +371,7 @@ def generate_video_bulletin(self, job_id):
                     ffmpeg, '-y',
                     '-i', str(source_avatar_mp4),
                     '-i', str(overlay_file),
-                    '-filter_complex', filter_str,
-                    '-map', '[v2]',
+                    '-filter_complex', '[0:v]scale=1280:720[base];[base][1:v]overlay=0:0:format=auto',
                     '-map', '0:a?',
                     '-c:v', 'libx264',
                     '-preset', 'medium',
