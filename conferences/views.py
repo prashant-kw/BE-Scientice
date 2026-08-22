@@ -15,7 +15,9 @@ class ConferenceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = ConferenceSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
     search_fields = ['title', 'description', 'location', 'category_name_override']
     ordering_fields = ['start_date', 'title']
     ordering = ['start_date']
@@ -23,30 +25,31 @@ class ConferenceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = Conference.objects.filter(is_published=True).select_related('category')
 
-        therapy_param = self.request.query_params.get('therapy_area') or self.request.query_params.get('category')
+        therapy_param = self.request.query_params.get('therapy_area') or self.request.query_params.get('category') or self.request.query_params.get('search')
         if therapy_param:
             clean_param = therapy_param.replace(' Conferences', '').replace(' Specialties', '').strip()
             qs = qs.filter(
                 Q(category__name__icontains=clean_param) |
                 Q(category__slug__iexact=clean_param) |
-                Q(category_name_override__icontains=clean_param)
+                Q(category_name_override__icontains=clean_param) |
+                Q(title__icontains=clean_param) |
+                Q(description__icontains=clean_param)
             )
 
         return qs
 
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=['get'], pagination_class=None)
     def upcoming(self, request):
         """
-        List conferences starting today or in the future.
+        List all published conferences ordered by start date / created date.
         """
-        today = timezone.now().date()
-        qs = self.get_queryset().filter(end_date__gte=today).order_by('start_date')
-        page = self.paginate_queryset(qs)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+        qs = self.get_queryset().order_by('-start_date', '-created_at')
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+
+
 
     @extend_schema(
         request=ConferenceRegistrationSerializer,

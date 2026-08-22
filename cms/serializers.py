@@ -438,6 +438,7 @@ class PagePublicSerializer(serializers.ModelSerializer):
 class VideoBulletinSerializer(serializers.ModelSerializer):
     backgroundImageUrl = serializers.SerializerMethodField()
     customAvatarImageUrl = serializers.SerializerMethodField()
+    promoBannerImageUrl = serializers.SerializerMethodField()
     videoUrl = serializers.SerializerMethodField()
 
     class Meta:
@@ -446,6 +447,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'id', 'title', 'slug', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events',
             'background_image', 'background_image_url', 'backgroundImageUrl',
+            'promo_banner_image', 'promoBannerImageUrl',
             'avatar', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
 
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
@@ -460,6 +462,9 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
     def get_backgroundImageUrl(self, obj):
         return self._url(obj.background_image, obj.background_image_url)
+
+    def get_promoBannerImageUrl(self, obj):
+        return self._url(obj.promo_banner_image, obj.background_image_url or (obj.background_image.url if obj.background_image else ''))
 
     def get_customAvatarImageUrl(self, obj):
         return self._url(obj.custom_avatar_image)
@@ -493,6 +498,9 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
     def validate_background_image(self, value):
         return validate_and_clean_image(value)
 
+    def validate_promo_banner_image(self, value):
+        return validate_and_clean_image(value)
+
     def validate_custom_avatar_image(self, value):
         return validate_and_clean_image(value)
 
@@ -502,10 +510,11 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
         fields = [
             'id', 'title', 'slug', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events',
-            'backgroundImageUrl', 'avatar', 'customAvatarImageUrl', 'videoUrl',
+            'backgroundImageUrl', 'promoBannerImageUrl', 'avatar', 'customAvatarImageUrl', 'videoUrl',
             'duration_seconds', 'launch_datetime', 'published_at', 'updated_at',
         ]
         read_only_fields = fields
+
 
 
 

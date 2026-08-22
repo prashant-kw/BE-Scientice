@@ -36,9 +36,11 @@ class VideoBulletin(TimeStampedModel):
 
     background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', blank=True, null=True)
     background_image_url = models.URLField(max_length=500, blank=True, default='')
+    promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
     custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', blank=True, null=True)
+
 
     key_highlights = models.JSONField(default=list, blank=True, help_text="Structured cards array: [{number, category, title, summary, date_str, time_str}]")
     previous_events = models.JSONField(default=list, blank=True, help_text="Archive events array: [{title, location_dates, bulletins_count, video_count}]")

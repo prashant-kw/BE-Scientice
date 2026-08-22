@@ -29,7 +29,9 @@ class ConferenceSerializer(serializers.ModelSerializer):
             'cmeCredits',
             'image',
             'documentUrl',
+            'created_at',
         ]
+
 
     def get_image(self, obj):
         request = self.context.get('request')

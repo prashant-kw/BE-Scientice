@@ -16,10 +16,11 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'summary', 'body', 'category_name_override', 'reference_name']
     ordering_fields = ['published_at', 'created_at', 'title']
-    ordering = ['-published_at']
+    ordering = ['-published_at', '-created_at']
 
     def get_queryset(self):
-        qs = Article.objects.filter(is_published=True).select_related('category')
+        qs = Article.objects.filter(is_published=True).select_related('category').order_by('-published_at', '-created_at')
+
 
         # Filter by therapy area / category
         therapy_param = self.request.query_params.get('therapy_area') or self.request.query_params.get('category')
@@ -48,7 +49,13 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         highlights = Article.objects.filter(
             is_published=True,
             is_headline=True
-        ).select_related('category').order_by('-published_at')[:8]
+        ).select_related('category').order_by('-published_at', '-created_at')[:8]
+
+        if not highlights.exists():
+            highlights = Article.objects.filter(
+                is_published=True
+            ).select_related('category').order_by('-published_at', '-created_at')[:8]
 
         serializer = self.get_serializer(highlights, many=True)
+
         return Response(serializer.data)
