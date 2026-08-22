@@ -464,7 +464,13 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         return self._url(obj.background_image, obj.background_image_url)
 
     def get_promoBannerImageUrl(self, obj):
-        return self._url(obj.promo_banner_image, obj.background_image_url or (obj.background_image.url if obj.background_image else ''))
+        request = self.context.get('request')
+        if obj.promo_banner_image:
+            return build_absolute_media_url(request, obj.promo_banner_image)
+        if obj.background_image:
+            return build_absolute_media_url(request, obj.background_image)
+        return build_absolute_media_url(request, obj.background_image_url)
+
 
     def get_customAvatarImageUrl(self, obj):
         return self._url(obj.custom_avatar_image)
