@@ -482,14 +482,13 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
     def validate_bullet_points(self, value):
         if not isinstance(value, list):
             raise serializers.ValidationError('Bullet points must be a list of text values.')
-        if len(value) > 12:
-            raise serializers.ValidationError('A bulletin can contain at most 12 bullet points.')
         cleaned = []
         for point in value:
             if not isinstance(point, str) or not point.strip():
                 raise serializers.ValidationError('Every bullet point must be non-empty text.')
             cleaned.append(sanitize_plain_text(point))
         return cleaned
+
 
     def validate_background_image(self, value):
         return validate_and_clean_image(value)

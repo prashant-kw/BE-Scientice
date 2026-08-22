@@ -80,37 +80,10 @@ def _studio_still(background_path, avatar_path, output_path):
 
 
 def _lower_third(title, output_path, bullet_points=None):
-    from PIL import Image, ImageDraw, ImageFont
-
+    from PIL import Image
     overlay = Image.new('RGBA', (1280, 720), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    # 1. TOP-LEFT LIVE Indicator (Red Badge + Glow)
-    draw.rectangle([30, 24, 125, 56], fill=(227, 30, 36, 255))
-    draw.ellipse([42, 36, 50, 44], fill=(255, 255, 255, 255))
-
-    # 2. BOTTOM News Ticker Bar Background (Dark Navy) matching web ticker
-    draw.rectangle([0, 676, 1280, 720], fill=(7, 19, 40, 255))
-
-    # 3. BOTTOM BREAKING Badge (Bright Red)
-    draw.rectangle([0, 676, 145, 720], fill=(217, 4, 41, 255))
-
-    # Fonts
-    try:
-        font_bold = ImageFont.truetype("arialbd.ttf", 13)
-        font_live = ImageFont.truetype("arialbd.ttf", 12)
-    except Exception:
-        font_bold = ImageFont.load_default()
-        font_live = font_bold
-
-    # Draw TOP-LEFT LIVE text
-    draw.text((58, 32), "LIVE", fill=(255, 255, 255), font=font_live)
-
-    # Draw BOTTOM BREAKING text
-    draw.text((18, 691), "● BREAKING", fill=(255, 255, 255), font=font_bold)
-
-
     overlay.save(output_path)
+
 
 
 
@@ -360,47 +333,17 @@ def generate_video_bulletin(self, job_id):
         else:
             raise RuntimeError('Neither REPLICATE_API_TOKEN nor VIDEO_SADTALKER_COMMAND is configured.')
 
-        _update(job, VideoGenerationJob.Status.COMPOSING, 78)
-        b_points = bulletin.bullet_points if isinstance(bulletin.bullet_points, list) else []
-        _lower_third(bulletin.title, overlay_file, bullet_points=b_points)
-        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        _update(job, VideoGenerationJob.Status.COMPOSING, 85)
 
-        try:
-            subprocess.run(
-                [
-                    ffmpeg, '-y',
-                    '-i', str(source_avatar_mp4),
-                    '-i', str(overlay_file),
-                    '-filter_complex', '[0:v]scale=1280:720[base];[base][1:v]overlay=0:0:format=auto',
-                    '-map', '0:a?',
-                    '-c:v', 'libx264',
-                    '-preset', 'medium',
-                    '-crf', '20',
-                    '-pix_fmt', 'yuv420p',
-                    '-c:a', 'aac',
-                    '-b:a', '160k',
-                    '-movflags', '+faststart',
-                    str(final_file),
-                ],
-                check=True,
-                timeout=20 * 60,
-                capture_output=True,
-                text=True,
-            )
-        except subprocess.CalledProcessError as exc:
-            ffmpeg_error = exc.stderr or exc.stdout or str(exc)
-            raise RuntimeError(
-                f"FFmpeg final composition failed:\n{ffmpeg_error[-3500:]}"
-            ) from exc
-
-
-
-        with final_file.open('rb') as generated:
+        with source_avatar_mp4.open('rb') as generated:
             bulletin.video_file.save(f'{bulletin.slug}-{job.id}.mp4', File(generated), save=False)
+
         duration_sec = _get_audio_duration(audio_file)
+
         if duration_sec > 0:
             bulletin.duration_seconds = int(round(duration_sec))
         bulletin.save(update_fields=['video_file', 'duration_seconds', 'updated_at'])
+
 
         job.output_file.name = bulletin.video_file.name
 
