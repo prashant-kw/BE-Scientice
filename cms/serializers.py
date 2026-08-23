@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import models, transaction
 from rest_framework import serializers
 
 from common.utils import build_absolute_media_url
@@ -440,12 +440,13 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
     customAvatarImageUrl = serializers.SerializerMethodField()
     promoBannerImageUrl = serializers.SerializerMethodField()
     videoUrl = serializers.SerializerMethodField()
+    event_playlist = serializers.SerializerMethodField()
 
     class Meta:
         model = VideoBulletin
         fields = [
-            'id', 'title', 'slug', 'eyebrow', 'summary', 'script', 'bullet_points',
-            'key_highlights', 'previous_events',
+            'id', 'title', 'slug', 'event_title', 'parent_event', 'eyebrow', 'summary', 'script', 'bullet_points',
+            'key_highlights', 'previous_events', 'event_playlist',
             'background_image', 'background_image_url', 'backgroundImageUrl',
             'promo_banner_image', 'promoBannerImageUrl',
             'avatar', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
@@ -453,6 +454,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
             'is_published', 'published_at', 'created_at', 'updated_at',
         ]
+
 
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -477,6 +479,32 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
     def get_videoUrl(self, obj):
         return self._url(obj.video_file, obj.video_url)
+
+    def get_event_playlist(self, obj):
+        request = self.context.get('request')
+        # Find all sibling clips under the same parent event or same event_title
+        parent_id = obj.parent_event_id or obj.id
+        qs = VideoBulletin.objects.filter(
+            models.Q(id=parent_id) | models.Q(parent_event_id=parent_id)
+        ).filter(is_published=True).order_by('-published_at', '-created_at')
+
+        playlist = []
+        for item in qs:
+            playlist.append({
+                'id': item.id,
+                'title': item.title,
+                'slug': item.slug,
+                'videoUrl': self._url(item.video_file, item.video_url),
+                'summary': item.summary,
+                'bullet_points': item.bullet_points,
+                'duration_seconds': item.duration_seconds,
+                'published_at': item.published_at,
+                'created_at': item.created_at,
+                'backgroundImageUrl': self._url(item.background_image, item.background_image_url),
+                'customAvatarImageUrl': self._url(item.custom_avatar_image),
+            })
+        return playlist
+
 
     def validate_title(self, value):
         return sanitize_plain_text(value)

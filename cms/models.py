@@ -29,10 +29,13 @@ class VideoBulletin(TimeStampedModel):
 
     title = models.CharField(max_length=300)
     slug = models.SlugField(max_length=320, unique=True)
+    event_title = models.CharField(max_length=300, blank=True, default='', help_text="Custom event title to group multiple sequential video clips (e.g. ESC Congress 2026)")
+    parent_event = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='sub_clips', help_text="Parent event bulletin if this is a secondary update video clip")
     eyebrow = models.CharField(max_length=120, blank=True, default='GLOBAL CARDIOLOGY BULLETIN')
     summary = models.TextField(blank=True, default='')
     script = models.TextField(help_text='Narration spoken by the selected avatar')
     bullet_points = models.JSONField(default=list, blank=True)
+
 
     background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', blank=True, null=True)
     background_image_url = models.URLField(max_length=500, blank=True, default='')
