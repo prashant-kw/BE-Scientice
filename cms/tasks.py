@@ -30,7 +30,7 @@ def _run_template(template, **values):
 
 
 
-def _studio_still(background_path, avatar_path, output_path):
+def _studio_still(background_path, avatar_path, output_path, x_offset=4.0, y_offset=0.0, scale='medium'):
     background = Image.open(background_path).convert('RGB').resize((1280, 720), Image.Resampling.LANCZOS)
     avatar = Image.open(avatar_path).convert('RGBA')
 
@@ -62,7 +62,6 @@ def _studio_still(background_path, avatar_path, output_path):
         for y in range(h):
             for x in range(w):
                 r, g, b = arr[y, x][:3]
-                # Strip pure white & light studio backgrounds (R > 200, G > 200, B > 200)
                 if r > 200 and g > 200 and b > 200:
                     arr[y, x, 3] = 0
                 elif r > 175 and g > 175 and b > 175 and abs(int(r) - int(g)) < 18 and abs(int(g) - int(b)) < 18:
@@ -70,10 +69,26 @@ def _studio_still(background_path, avatar_path, output_path):
 
         avatar = Image.fromarray(arr)
 
+    # Scale sizing: standard (460, 610), medium (580, 690), large (720, 780)
+    max_w, max_h = 580, 690
+    if scale == 'standard':
+        max_w, max_h = 460, 610
+    elif scale == 'large':
+        max_w, max_h = 720, 780
 
-    avatar.thumbnail((550, 680), Image.Resampling.LANCZOS)
-    background.paste(avatar, (55, 720 - avatar.height), avatar)
+    avatar.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+
+    # Compute X and Y pixel positions from percentages
+    pos_x = int((x_offset / 100.0) * 1280)
+    pos_y = 720 - avatar.height - int((y_offset / 100.0) * 720)
+
+    # Clamp bounds so avatar stays inside frame
+    pos_x = max(0, min(1280 - avatar.width, pos_x))
+    pos_y = max(0, min(720 - avatar.height, pos_y))
+
+    background.paste(avatar, (pos_x, pos_y), avatar)
     background.save(output_path, quality=95)
+
 
 
 
@@ -276,7 +291,13 @@ def generate_video_bulletin(self, job_id):
 
 
 
-        _studio_still(bg_path, avatar_path, studio_still)
+        _studio_still(
+            bg_path, avatar_path, studio_still,
+            x_offset=getattr(bulletin, 'avatar_x_offset', 4.0),
+            y_offset=getattr(bulletin, 'avatar_y_offset', 0.0),
+            scale=getattr(bulletin, 'avatar_scale', 'medium')
+        )
+
         avatar_output.mkdir(exist_ok=True)
 
         _update(job, VideoGenerationJob.Status.AVATAR, 45)
