@@ -285,9 +285,14 @@ def generate_video_bulletin(self, job_id):
         script_file.write_text(bulletin.script or 'Welcome to the Global Cardiology Bulletin.', encoding='utf-8')
 
         _update(job, VideoGenerationJob.Status.AUDIO, 15)
-        voice_gender = getattr(bulletin, 'voice_gender', 'female') or 'female'
+        voice_gender = str(getattr(bulletin, 'voice_gender', 'female') or 'female').lower()
+        avatar_choice = str(getattr(bulletin, 'avatar', '') or '').lower()
+        if 'male' in avatar_choice or avatar_choice in ['male_doctor', 'male_anchor']:
+            voice_gender = 'male'
+
         _run_template(settings.VIDEO_TTS_COMMAND, script_file=script_file, audio_file=audio_file,
                       avatar_file=str(avatar_path), output_dir=avatar_output, voice_gender=voice_gender)
+
 
 
 
