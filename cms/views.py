@@ -413,18 +413,17 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
 
         job = VideoGenerationJob.objects.create(bulletin=bulletin)
         from .tasks import generate_video_bulletin
-        try:
-            task = generate_video_bulletin.delay(job.id)
-            job.task_id = str(task.id)
-            job.save(update_fields=['task_id', 'updated_at'])
-        except Exception as e:
-            import threading
-            t = threading.Thread(target=generate_video_bulletin, args=(job.id,), daemon=True)
-            t.start()
-            job.task_id = f'thread-{t.ident}'
-            job.save(update_fields=['task_id', 'updated_at'])
+
+        # Dispatch via background thread to guarantee instant HTTP 202 response without Gunicorn worker timeout
+        import threading
+        t = threading.Thread(target=generate_video_bulletin, args=(job.id,), daemon=True)
+        t.start()
+
+        job.task_id = f'bg-thread-{t.ident}'
+        job.save(update_fields=['task_id', 'updated_at'])
 
         return Response(VideoGenerationJobSerializer(job, context={'request': request}).data, status=status.HTTP_202_ACCEPTED)
+
 
 
 
