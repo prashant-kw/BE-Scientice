@@ -65,26 +65,18 @@ class Command(BaseCommand):
             doctor_user.save()
             self.stdout.write(self.style.SUCCESS('Created demo doctor: doctor@scientice.org / Doctor@12345'))
 
-        # 3. Seed Therapy Areas
+        # 3. Seed Therapy Areas (exact 8 requested specialties)
         therapy_areas_data = [
             ("Cardiology", "Heart", 1),
-            ("Diabetology", "Activity", 2),
-            ("Dermatology", "Sparkles", 3),
-            ("Respiratory / Pulmonology", "Wind", 4),
-            ("Gastroenterology", "Stethoscope", 5),
-            ("Neurology", "Brain", 6),
-            ("Psychiatry", "Smile", 7),
-            ("Oncology", "ShieldAlert", 8),
-            ("Rheumatology", "Bone", 9),
-            ("Orthopedics", "Syringe", 10),
-            ("Nephrology", "Droplets", 11),
-            ("Urology", "CheckCircle", 12),
-            ("Obstetrics & Gynaecology", "UserCheck", 13),
-            ("Pediatrics", "Baby", 14),
-            ("Ophthalmology", "Eye", 15),
-            ("Allergy & Immunology", "ShieldCheck", 16),
-            ("Infectious Diseases", "Microscope", 17),
+            ("Endocrinology", "Activity", 2),
+            ("Gastroenterology", "Stethoscope", 3),
+            ("Neurology", "Brain", 4),
+            ("Nephrology", "Droplets", 5),
+            ("Pulmonology", "Wind", 6),
+            ("Oncology", "ShieldAlert", 7),
+            ("Internal medicine", "Sparkles", 8),
         ]
+
 
         ta_map = {}
         for name, icon, order in therapy_areas_data:
