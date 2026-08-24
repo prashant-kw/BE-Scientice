@@ -445,7 +445,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoBulletin
         fields = [
-            'id', 'title', 'slug', 'event_title', 'parent_event', 'eyebrow', 'summary', 'script', 'bullet_points',
+            'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events', 'event_playlist',
             'background_image', 'background_image_url', 'backgroundImageUrl',
             'promo_banner_image', 'promoBannerImageUrl',
@@ -454,7 +454,6 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
             'is_published', 'published_at', 'created_at', 'updated_at',
         ]
-
 
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -494,6 +493,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'id': item.id,
                 'title': item.title,
                 'slug': item.slug,
+                'loop_start_clip': item.loop_start_clip_id,
                 'videoUrl': self._url(item.video_file, item.video_url),
                 'summary': item.summary,
                 'bullet_points': item.bullet_points,
@@ -504,6 +504,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'customAvatarImageUrl': self._url(item.custom_avatar_image),
             })
         return playlist
+
 
 
     def validate_title(self, value):

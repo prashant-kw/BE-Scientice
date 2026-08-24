@@ -333,9 +333,21 @@ def generate_video_bulletin(self, job_id):
         else:
             raise RuntimeError('Neither REPLICATE_API_TOKEN nor VIDEO_SADTALKER_COMMAND is configured.')
 
-        _update(job, VideoGenerationJob.Status.COMPOSING, 85)
+        _update(job, VideoGenerationJob.Status.COMPOSING, 85, 'Encoding Web H.264 video stream…')
 
-        with source_avatar_mp4.open('rb') as generated:
+        web_compatible_mp4 = root / 'web-compatible.mp4'
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+
+        # Transcode video to standard Web H.264 / AAC + faststart for 100% universal web browser video rendering
+        subprocess.run([
+            ffmpeg, '-y', '-i', str(source_avatar_mp4),
+            '-c:v', 'libx264', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k',
+            '-movflags', '+faststart',
+            str(web_compatible_mp4)
+        ], check=True, timeout=10 * 60)
+
+        with web_compatible_mp4.open('rb') as generated:
             bulletin.video_file.save(f'{bulletin.slug}-{job.id}.mp4', File(generated), save=False)
 
         duration_sec = _get_audio_duration(audio_file)
@@ -343,6 +355,7 @@ def generate_video_bulletin(self, job_id):
         if duration_sec > 0:
             bulletin.duration_seconds = int(round(duration_sec))
         bulletin.save(update_fields=['video_file', 'duration_seconds', 'updated_at'])
+
 
 
         job.output_file.name = bulletin.video_file.name

@@ -411,7 +411,9 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
             if active:
                 return Response(VideoGenerationJobSerializer(active, context={'request': request}).data)
 
-        job = VideoGenerationJob.objects.create(bulletin=bulletin)
+        import uuid
+        task_uuid = f'job-{uuid.uuid4().hex[:12]}'
+        job = VideoGenerationJob.objects.create(bulletin=bulletin, task_id=task_uuid)
         from .tasks import generate_video_bulletin
 
         # Dispatch via background thread to guarantee instant HTTP 202 response without Gunicorn worker timeout
@@ -419,10 +421,8 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
         t = threading.Thread(target=generate_video_bulletin, args=(job.id,), daemon=True)
         t.start()
 
-        job.task_id = f'bg-thread-{t.ident}'
-        job.save(update_fields=['task_id', 'updated_at'])
-
         return Response(VideoGenerationJobSerializer(job, context={'request': request}).data, status=status.HTTP_202_ACCEPTED)
+
 
 
 

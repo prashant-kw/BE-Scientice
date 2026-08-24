@@ -31,7 +31,9 @@ class VideoBulletin(TimeStampedModel):
     slug = models.SlugField(max_length=320, unique=True)
     event_title = models.CharField(max_length=300, blank=True, default='', help_text="Custom event title to group multiple sequential video clips (e.g. ESC Congress 2026)")
     parent_event = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='sub_clips', help_text="Parent event bulletin if this is a secondary update video clip")
+    loop_start_clip = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='loop_children', help_text="Target clip to loop back to when playlist finishes (e.g. Video #5)")
     eyebrow = models.CharField(max_length=120, blank=True, default='GLOBAL CARDIOLOGY BULLETIN')
+
     summary = models.TextField(blank=True, default='')
     script = models.TextField(help_text='Narration spoken by the selected avatar')
     bullet_points = models.JSONField(default=list, blank=True)
