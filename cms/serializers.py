@@ -449,11 +449,13 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'key_highlights', 'previous_events', 'event_playlist',
             'background_image', 'background_image_url', 'backgroundImageUrl',
             'promo_banner_image', 'promoBannerImageUrl',
-            'avatar', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
+            'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
+
 
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
             'is_published', 'published_at', 'created_at', 'updated_at',
         ]
+
 
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -555,9 +557,11 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
         fields = [
             'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events', 'event_playlist',
-            'backgroundImageUrl', 'promoBannerImageUrl', 'avatar', 'customAvatarImageUrl', 'videoUrl',
+            'backgroundImageUrl', 'promoBannerImageUrl', 'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'customAvatarImageUrl', 'videoUrl',
+
             'duration_seconds', 'launch_datetime', 'published_at', 'updated_at',
         ]
+
 
         read_only_fields = fields
 

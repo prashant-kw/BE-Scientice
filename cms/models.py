@@ -45,6 +45,12 @@ class VideoBulletin(TimeStampedModel):
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
     custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', blank=True, null=True)
+    avatar_position = models.CharField(max_length=20, choices=[('left', 'Left Anchor'), ('center', 'Center Anchor'), ('right', 'Right Anchor')], default='left', help_text="Presenter placement position inside newsroom background")
+    avatar_scale = models.CharField(max_length=20, choices=[('standard', 'Standard (100%)'), ('medium', 'Medium (120%)'), ('large', 'Large Broadcast (140%)')], default='medium', help_text="Presenter display size scale")
+    avatar_x_offset = models.FloatField(default=4.0, help_text="Presenter horizontal offset percentage (0 to 80%)")
+    avatar_y_offset = models.FloatField(default=0.0, help_text="Presenter vertical offset percentage (-10 to 30%)")
+
+
 
 
     key_highlights = models.JSONField(default=list, blank=True, help_text="Structured cards array: [{number, category, title, summary, date_str, time_str}]")

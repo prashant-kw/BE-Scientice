@@ -3,7 +3,7 @@ from PIL import Image, ImageOps
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
 ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP', 'GIF'}
 
 def validate_and_clean_image(uploaded_file):
@@ -15,7 +15,8 @@ def validate_and_clean_image(uploaded_file):
         return uploaded_file
 
     if uploaded_file.size > MAX_IMAGE_SIZE_BYTES:
-        raise ValidationError(f"Image file size exceeds maximum allowed limit (5MB). Current size: {uploaded_file.size / (1024*1024):.1f}MB")
+        raise ValidationError(f"Image file size exceeds maximum allowed limit (15MB). Current size: {uploaded_file.size / (1024*1024):.1f}MB")
+
 
     try:
         # 1. Verify byte integrity
