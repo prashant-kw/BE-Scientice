@@ -5,12 +5,17 @@ from .serializers import EducationCategorySerializer, EducationResourceSerialize
 
 class EducationCategoryListView(generics.ListAPIView):
     """
-    List all high-level education categories (Patient, Medical, CME).
+    List all high-level education categories that have active published resources.
     """
-    queryset = EducationCategory.objects.all().order_by('order', 'id')
     serializer_class = EducationCategorySerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = None
+
+    def get_queryset(self):
+        return EducationCategory.objects.filter(
+            resources__is_published=True
+        ).distinct().order_by('order', 'id')
+
 
 class PatientEducationListView(generics.ListAPIView):
     """

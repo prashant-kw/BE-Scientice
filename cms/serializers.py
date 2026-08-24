@@ -470,7 +470,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             return build_absolute_media_url(request, obj.promo_banner_image)
         if obj.background_image:
             return build_absolute_media_url(request, obj.background_image)
-        return build_absolute_media_url(request, obj.background_image_url)
+        return build_absolute_media_url(request, obj.background_image_url or 'video_bulletins/backgrounds/prototype-newsroom.png')
+
 
 
     def get_customAvatarImageUrl(self, obj):
@@ -481,20 +482,27 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
     def get_event_playlist(self, obj):
         request = self.context.get('request')
-        # Find all sibling clips under the same parent event or same event_title
+        # Find all sibling clips under the same parent event, event_title, or loop_start_clip
         parent_id = obj.parent_event_id or obj.id
-        qs = VideoBulletin.objects.filter(
-            models.Q(id=parent_id) | models.Q(parent_event_id=parent_id)
-        ).filter(is_published=True).order_by('-published_at', '-created_at')
+        event_title = obj.event_title.strip() if obj.event_title else ''
+
+        q_filter = models.Q(id=parent_id) | models.Q(parent_event_id=parent_id)
+        if event_title:
+            q_filter |= models.Q(event_title__iexact=event_title)
+        if obj.loop_start_clip_id:
+            q_filter |= models.Q(id=obj.loop_start_clip_id)
+
+        qs = VideoBulletin.objects.filter(q_filter).distinct().order_by('created_at', 'id')
 
         playlist = []
         for item in qs:
+            v_url = build_absolute_media_url(request, item.video_file or item.video_url or '')
             playlist.append({
                 'id': item.id,
                 'title': item.title,
                 'slug': item.slug,
                 'loop_start_clip': item.loop_start_clip_id,
-                'videoUrl': self._url(item.video_file, item.video_url),
+                'videoUrl': v_url,
                 'summary': item.summary,
                 'bullet_points': item.bullet_points,
                 'duration_seconds': item.duration_seconds,
@@ -504,6 +512,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'customAvatarImageUrl': self._url(item.custom_avatar_image),
             })
         return playlist
+
+
 
 
 
