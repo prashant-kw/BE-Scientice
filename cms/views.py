@@ -396,20 +396,11 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
             )
 
 
-        # Clear stuck jobs if requested or if job was queued before worker start
-
-        if request.query_params.get('force') == 'true':
-            bulletin.generation_jobs.filter(
-                status__in=[VideoGenerationJob.Status.QUEUED, VideoGenerationJob.Status.AUDIO,
-                            VideoGenerationJob.Status.AVATAR, VideoGenerationJob.Status.COMPOSING]
-            ).update(status=VideoGenerationJob.Status.FAILED, error='Cancelled by user retry')
-        else:
-            active = bulletin.generation_jobs.filter(
-                status__in=[VideoGenerationJob.Status.QUEUED, VideoGenerationJob.Status.AUDIO,
-                            VideoGenerationJob.Status.AVATAR, VideoGenerationJob.Status.COMPOSING]
-            ).first()
-            if active:
-                return Response(VideoGenerationJobSerializer(active, context={'request': request}).data)
+        # Cancel any previous/in-progress jobs so every click on Regenerate triggers a 100% fresh audio & video rendering pass
+        bulletin.generation_jobs.filter(
+            status__in=[VideoGenerationJob.Status.QUEUED, VideoGenerationJob.Status.AUDIO,
+                        VideoGenerationJob.Status.AVATAR, VideoGenerationJob.Status.COMPOSING]
+        ).update(status=VideoGenerationJob.Status.FAILED, error='Replaced by fresh generation request')
 
         import uuid
         task_uuid = f'job-{uuid.uuid4().hex[:12]}'
@@ -422,10 +413,6 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
         t.start()
 
         return Response(VideoGenerationJobSerializer(job, context={'request': request}).data, status=status.HTTP_202_ACCEPTED)
-
-
-
-
 
     @action(detail=True, methods=['get'])
     def generation_status(self, request, pk=None):
