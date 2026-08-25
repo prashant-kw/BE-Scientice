@@ -45,7 +45,9 @@ class ArticleCMSViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all().select_related('category')
     serializer_class = ArticleCMSSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
     filterset_fields = ['is_published', 'is_headline', 'category']
     search_fields = ['title', 'summary', 'body', 'reference_name', 'category_name_override']
     ordering_fields = ['published_at', 'created_at', 'title', 'is_published']
@@ -362,10 +364,12 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
     queryset = VideoBulletin.objects.all()
     serializer_class = VideoBulletinSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'summary', 'script']
     ordering_fields = ['published_at', 'created_at', 'title']
     ordering = ['-published_at']
+
 
     @action(detail=True, methods=['post'])
     def toggle_publish(self, request, pk=None):
@@ -427,7 +431,9 @@ class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = VideoBulletin.objects.filter(is_published=True).order_by('-launch_datetime', '-published_at')
     serializer_class = VideoBulletinPublicSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
     lookup_field = 'slug'
+
 
 
 
