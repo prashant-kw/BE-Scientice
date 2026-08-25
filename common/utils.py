@@ -1,3 +1,5 @@
+from django.conf import settings
+
 def build_absolute_media_url(request, file_field_or_url):
     """
     Given a request context and a file/image field or string URL, returns
@@ -21,6 +23,11 @@ def build_absolute_media_url(request, file_field_or_url):
     # If already a fully qualified external URL
     if url.startswith('http://') or url.startswith('https://'):
         return url
+
+    # If it's a relative media path not starting with MEDIA_URL, prepend MEDIA_URL
+    media_url = getattr(settings, 'MEDIA_URL', '/media/')
+    if not url.startswith('/') and not url.startswith(media_url):
+        url = f"{media_url.rstrip('/')}/{url.lstrip('/')}"
 
     # Build absolute URI using request context if available
     if request:

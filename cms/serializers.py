@@ -472,7 +472,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             return build_absolute_media_url(request, obj.promo_banner_image)
         if obj.background_image:
             return build_absolute_media_url(request, obj.background_image)
-        return build_absolute_media_url(request, obj.background_image_url or 'video_bulletins/backgrounds/prototype-newsroom.png')
+        return build_absolute_media_url(request, obj.background_image_url or '')
 
 
 

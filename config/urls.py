@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/', include('sitecontact.urls')),
     path('api/cms/', include('cms.urls')),
     path('api/video-reports/', include('cms.public_urls')),
+    path('api/pages/', include(('cms.pages_urls', 'pages'), namespace='public-pages')),
 ]
 
 if settings.DEBUG:

@@ -483,11 +483,11 @@ class Command(BaseCommand):
 
         # 9. Seed Site Info Singleton
         site_info = SiteInfo.get_solo()
-        site_info.phone = "+91 12345 67890"
-        site_info.email = "info@scientice.com"
-        site_info.address = "Scientiice Pvt. Ltd., Science House, Knowledge Park, Hyderabad, India - 500081"
-        site_info.facebook_url = "https://facebook.com/scientice"
-        site_info.instagram_url = "https://instagram.com/scientice"
+        site_info.phone = ""
+        site_info.email = "info@scientice.health"
+        site_info.address = "Mumbai, Maharashtra"
+        site_info.facebook_url = ""
+        site_info.instagram_url = ""
         site_info.website_url = "https://scientice.com"
         site_info.save()
         self.stdout.write(self.style.SUCCESS('Seeded SiteInfo contact configuration.'))
