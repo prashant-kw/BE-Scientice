@@ -12,12 +12,10 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,scientice.health,www.scientice.health', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -81,7 +79,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 DATABASE_URL = config('DATABASE_URL', default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 DATABASES = {
     'default': dj_database_url.config(
@@ -95,7 +92,6 @@ DATABASES = {
 AUTH_USER_MODEL = 'accounts.User'
 
 # Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -112,14 +108,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -130,11 +124,22 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Security & Proxy Header Settings for Production Nginx SSL
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# CSRF Trusted Origins for Admin Panel and Form Submissions over HTTPS
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://scientice.health,https://www.scientice.health,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000',
+    cast=Csv(),
+)
+
 # Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
@@ -181,10 +186,11 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://localhost:8081,http://127.0.0.1:8081',
+    default='https://scientice.health,https://www.scientice.health,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8081,http://127.0.0.1:8081',
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
 
 # DRF Spectacular OpenAPI documentation
 SPECTACULAR_SETTINGS = {
@@ -199,7 +205,7 @@ EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.conso
 
 # Background video generation
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default=CELERY_BROKER_URL)
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', defaultCELERY_BROKER_URL)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 60
 CELERY_TASK_ALWAYS_EAGER = True
@@ -212,10 +218,5 @@ VIDEO_TTS_COMMAND = config(
     default=f'"{sys.executable}" "{BASE_DIR / "video_generation" / "kokoro_tts.py"}" --script-file {{script_file}} --output {{audio_file}} --voice-gender {{voice_gender}}'
 )
 
-
-
 VIDEO_SADTALKER_COMMAND = config('VIDEO_SADTALKER_COMMAND', default='')
 REPLICATE_API_TOKEN = config('REPLICATE_API_TOKEN', default='')
-
-
-

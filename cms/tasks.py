@@ -285,13 +285,12 @@ def generate_video_bulletin(self, job_id):
         script_file.write_text(bulletin.script or 'Welcome to the Global Cardiology Bulletin.', encoding='utf-8')
 
         _update(job, VideoGenerationJob.Status.AUDIO, 15)
+        # Strictly honor the explicitly selected voice_gender field ('female' or 'male')
         voice_gender = str(getattr(bulletin, 'voice_gender', 'female') or 'female').lower()
-        avatar_choice = str(getattr(bulletin, 'avatar', '') or '').lower()
-        if 'male' in avatar_choice or avatar_choice in ['male_doctor', 'male_anchor']:
-            voice_gender = 'male'
 
         _run_template(settings.VIDEO_TTS_COMMAND, script_file=script_file, audio_file=audio_file,
                       avatar_file=str(avatar_path), output_dir=avatar_output, voice_gender=voice_gender)
+
 
 
 
@@ -313,9 +312,10 @@ def generate_video_bulletin(self, job_id):
             duration_sec = _get_audio_duration(audio_file)
             ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
 
-            # Split audio if longer than 5 minutes (300 seconds)
-            if duration_sec > 300:
-                audio_chunks = _split_wav(audio_file, chunks_dir, max_chunk_seconds=300)
+            # Split audio if longer than 3 minutes (180 seconds) to guarantee fast & reliable AI generation
+            if duration_sec > 180:
+                audio_chunks = _split_wav(audio_file, chunks_dir, max_chunk_seconds=180)
+
                 total_chunks = len(audio_chunks)
                 rendered_mp4s = []
 
