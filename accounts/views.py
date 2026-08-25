@@ -165,3 +165,83 @@ class ProfileView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ForgotPasswordView(APIView):
+    """
+    Public endpoint to initiate password reset request.
+    Verifies user email exists and returns authorization for reset.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        if not email:
+            return Response({'email': ['Email address is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response(
+                {'detail': 'No registered account found with this email address. Please check your email or register.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        record_auth_audit(
+            request,
+            AuditLog.Action.LOGIN_FAILED,
+            user=user,
+            email=user.email,
+            details={'reason': 'Password reset requested'}
+        )
+
+        return Response({
+            'detail': f'Account verified for {user.email}. You can now enter your new password.',
+            'email': user.email,
+        }, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    """
+    Public endpoint to set a new password for a user account.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        new_password = request.data.get('password', '').strip()
+
+        if not email or not new_password:
+            return Response(
+                {'detail': 'Both email and new password are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(new_password) < 6:
+            return Response(
+                {'detail': 'Password must be at least 6 characters long.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response(
+                {'detail': 'Account not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=['password', 'updated_at'])
+
+        record_auth_audit(
+            request,
+            AuditLog.Action.LOGIN_SUCCESS,
+            user=user,
+            email=user.email,
+            details={'reason': 'Password reset successfully'}
+        )
+
+        return Response({
+            'detail': 'Your password has been successfully reset! You can now log in with your new password.'
+        }, status=status.HTTP_200_OK)
+
