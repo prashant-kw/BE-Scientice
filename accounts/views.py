@@ -166,17 +166,25 @@ class ProfileView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.conf import settings
+
 class ForgotPasswordView(APIView):
     """
-    Public endpoint to initiate password reset request.
-    Verifies user email exists and returns authorization for reset.
+    Public endpoint to initiate a password reset.
+    Supports email dispatch and manual account verification (e.g. email + medical registration number).
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         email = request.data.get('email', '').strip()
+        license_number = request.data.get('license_number', '').strip()
+
         if not email:
-            return Response({'email': ['Email address is required.']}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email__iexact=email)
@@ -186,62 +194,140 @@ class ForgotPasswordView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # If manual verification with Medical Registration / License number was provided
+        if license_number:
+            stored_license = (user.license_number or '').strip().lower()
+            provided_license = license_number.strip().lower()
+            
+            if stored_license and stored_license != provided_license:
+                return Response(
+                    {'detail': 'Medical council registration number does not match our records.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            return Response({
+                'detail': 'Account identity verified successfully.',
+                'verified': True,
+                'email': user.email,
+                'uid': uid,
+                'token': token
+            }, status=status.HTTP_200_OK)
+
+        # Default Email Link dispatch
+        frontend_domain = getattr(settings, 'FRONTEND_URL', 'https://scientice.health')
+        reset_link = f"{frontend_domain}/?reset_uid={uid}&reset_token={token}&email={user.email}"
+
+        subject = "Password Reset Request — Scientice Medical Hub"
+        message_body = (
+            f"Dear {user.full_name or 'User'},\n\n"
+            f"We received a request to reset the password for your Scientice account ({user.email}).\n\n"
+            f"Please click the link below to set your new password:\n"
+            f"{reset_link}\n\n"
+            f"If you did not request a password reset, you can safely ignore this email.\n\n"
+            f"Warm regards,\n"
+            f"The Scientice Team"
+        )
+
+        try:
+            send_mail(
+                subject=subject,
+                message=message_body,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'Scientice <no-reply@scientice.health>'),
+                recipient_list=[user.email],
+                fail_silently=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {user.email}: {e}")
+
         record_auth_audit(
             request,
             AuditLog.Action.LOGIN_FAILED,
             user=user,
             email=user.email,
-            details={'reason': 'Password reset requested'}
+            details={'reason': 'Password reset request initiated'}
         )
 
         return Response({
-            'detail': f'Account verified for {user.email}. You can now enter your new password.',
+            'detail': f'A password reset link has been sent to {user.email}. Please check your email inbox.',
             'email': user.email,
+            'uid': uid,
+            'token': token
         }, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):
     """
-    Public endpoint to set a new password for a user account.
+    Public endpoint to set a new password for a user account using email verification token.
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '').strip()
-        new_password = request.data.get('password', '').strip()
-
-        if not email or not new_password:
-            return Response(
-                {'detail': 'Both email and new password are required.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if len(new_password) < 6:
-            return Response(
-                {'detail': 'Password must be at least 6 characters long.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            return Response(
-                {'detail': 'Account not found.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            email = request.data.get('email', '').strip()
+            new_password = request.data.get('password', '').strip()
+            uid = request.data.get('uid', '').strip()
+            token = request.data.get('token', '').strip()
 
-        user.set_password(new_password)
-        user.save(update_fields=['password', 'updated_at'])
+            if not email or not new_password:
+                return Response(
+                    {'detail': 'Both email and new password are required.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        record_auth_audit(
-            request,
-            AuditLog.Action.LOGIN_SUCCESS,
-            user=user,
-            email=user.email,
-            details={'reason': 'Password reset successfully'}
-        )
+            if len(new_password) < 6:
+                return Response(
+                    {'detail': 'Password must be at least 6 characters long.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response({
-            'detail': 'Your password has been successfully reset! You can now log in with your new password.'
-        }, status=status.HTTP_200_OK)
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response(
+                    {'detail': 'Account not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Validate token if uid & token are provided
+            if uid and token:
+                try:
+                    decoded_pk = force_str(urlsafe_base64_decode(uid))
+                    if str(user.pk) != str(decoded_pk) or not default_token_generator.check_token(user, token):
+                        return Response(
+                            {'detail': 'Invalid or expired password reset token. Please request a new email link.'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                except Exception as te:
+                    logger.warning(f"Token verification error: {te}")
+                    return Response(
+                        {'detail': 'Invalid password reset token payload.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            user.set_password(new_password)
+            user.save()
+
+            try:
+                record_auth_audit(
+                    request,
+                    AuditLog.Action.LOGIN_SUCCESS,
+                    user=user,
+                    email=user.email,
+                    details={'reason': 'Password reset successfully'}
+                )
+            except Exception as ae:
+                logger.warning(f"Audit log error: {ae}")
+
+            return Response({
+                'detail': 'Your password has been successfully reset! You can now log in with your new password.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"ResetPasswordView server error: {e}", exc_info=True)
+            return Response({'detail': f'Unable to reset password: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 

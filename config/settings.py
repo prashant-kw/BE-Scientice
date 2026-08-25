@@ -200,8 +200,17 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Email settings
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+# Hostinger Free Webmail SMTP Settings
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.hostinger.com')
+EMAIL_PORT = config('EMAIL_PORT', cast=int, default=465)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', cast=bool, default=True)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool, default=False)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='no-reply@scientice.health')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Scientice Medical Hub <no-reply@scientice.health>')
+
+
 
 # Background video generation
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
