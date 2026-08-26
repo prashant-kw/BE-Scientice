@@ -501,3 +501,25 @@ class KeyHighlightItemPublicViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = KeyHighlightItemSerializer
     permission_classes = [permissions.AllowAny]
 
+
+from guidelines.models import ConferenceSociety
+from .serializers import ConferenceSocietyCMSSerializer
+
+class ConferenceSocietyCMSViewSet(viewsets.ModelViewSet):
+    queryset = ConferenceSociety.objects.all()
+    serializer_class = ConferenceSocietyCMSSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_active']
+    search_fields = ['code', 'name', 'description']
+    ordering_fields = ['order', 'code', 'name', 'created_at']
+    ordering = ['order', 'code']
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        society = self.get_object()
+        society.is_active = not society.is_active
+        society.save(update_fields=['is_active', 'updated_at'])
+        return Response({'id': society.id, 'is_active': society.is_active})
+
+

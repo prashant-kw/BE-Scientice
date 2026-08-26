@@ -27,12 +27,14 @@ from .views import (
     VideoBulletinLeadCMSViewSet,
     KeyHighlightItemCMSViewSet,
     KeyHighlightItemPublicViewSet,
+    ConferenceSocietyCMSViewSet,
 )
 
 
 router = DefaultRouter()
 router.register(r'articles', ArticleCMSViewSet, basename='cms-articles')
 router.register(r'guidelines', GuidelineCMSViewSet, basename='cms-guidelines')
+router.register(r'societies', ConferenceSocietyCMSViewSet, basename='cms-societies')
 router.register(r'conferences', ConferenceCMSViewSet, basename='cms-conferences')
 router.register(r'education', EducationResourceCMSViewSet, basename='cms-education')
 router.register(r'infographics', InfographicCMSViewSet, basename='cms-infographics')

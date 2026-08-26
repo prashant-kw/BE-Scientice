@@ -70,11 +70,12 @@ class GuidelineCMSSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(read_only=True)
     image_display_url = serializers.SerializerMethodField()
     effective_document_url = serializers.SerializerMethodField()
+    society_code = serializers.CharField(source='society.code', read_only=True, default='')
 
     class Meta:
         model = Guideline
         fields = [
-            'id', 'title', 'authority',
+            'id', 'title', 'authority', 'guideline_type', 'society', 'society_code',
             'category', 'category_display', 'category_name_override',
             'summary', 'image', 'image_url', 'image_display_url',
             'document_url', 'document_file', 'effective_document_url',
@@ -620,4 +621,33 @@ class KeyHighlightItemSerializer(serializers.ModelSerializer):
         model = KeyHighlightItem
         fields = ['id', 'number', 'category', 'title', 'summary', 'date_str', 'time_str', 'article_link', 'order', 'is_published', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+from guidelines.models import ConferenceSociety
+
+class ConferenceSocietyCMSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConferenceSociety
+        fields = [
+            'id',
+            'code',
+            'name',
+            'description',
+            'website_url',
+            'order',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_code(self, value):
+        return sanitize_plain_text(value).upper().strip()
+
+    def validate_name(self, value):
+        return sanitize_plain_text(value).strip()
+
+    def validate_description(self, value):
+        return sanitize_plain_text(value).strip()
+
 
