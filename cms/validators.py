@@ -60,18 +60,18 @@ def validate_and_clean_image(uploaded_file):
     except (IOError, SyntaxError, ValueError) as e:
         raise ValidationError(f"Invalid or corrupted image file: {str(e)}")
 
-MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_PDF_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB
 
 def validate_and_clean_pdf(uploaded_file):
     """
     Validate uploaded PDF using magic bytes inspection (preventing MIME spoofing)
-    and enforce a maximum file size.
+    with maximum upload capacity for large clinical documents.
     """
     if not uploaded_file:
         return uploaded_file
 
     if uploaded_file.size > MAX_PDF_SIZE_BYTES:
-        raise ValidationError(f"PDF file size exceeds maximum allowed limit (10MB). Current size: {uploaded_file.size / (1024*1024):.1f}MB")
+        raise ValidationError(f"PDF file size exceeds maximum allowed limit (500MB). Current size: {uploaded_file.size / (1024*1024):.1f}MB")
 
     try:
         uploaded_file.seek(0)
