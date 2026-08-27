@@ -23,7 +23,11 @@ class ConferenceViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['start_date']
 
     def get_queryset(self):
-        qs = Conference.objects.filter(is_published=True).select_related('category')
+        qs = Conference.objects.filter(
+            Q(is_published=True) &
+            (Q(category__isnull=True) | Q(category__is_active=True)) &
+            (Q(conference_category__isnull=True) | Q(conference_category__is_active=True))
+        ).select_related('category')
 
         therapy_param = self.request.query_params.get('therapy_area') or self.request.query_params.get('category') or self.request.query_params.get('search')
         if therapy_param:

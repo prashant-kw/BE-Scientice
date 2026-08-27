@@ -4,11 +4,43 @@ from common.models import TimeStampedModel
 from therapyareas.models import TherapyArea
 from accounts.models import User
 
+class ConferenceCategory(TimeStampedModel):
+    """
+    Subcategory/Track for grouping conferences (e.g. Annual Congress, Symposia, Clinical Workshop, Webinars).
+    """
+    name = models.CharField(max_length=150, unique=True, help_text="Conference subcategory name")
+    slug = models.SlugField(max_length=160, unique=True, blank=True)
+    description = models.TextField(blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True, help_text="Controls whether this conference subcategory is visible on the portal")
+
+    class Meta:
+        verbose_name = 'Conference Subcategory'
+        verbose_name_plural = 'Conference Subcategories'
+        ordering = ['order', 'name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
 class Conference(TimeStampedModel):
     title = models.CharField(max_length=300)
     slug = models.SlugField(max_length=320, unique=True, blank=True)
     description = models.TextField(blank=True, default='')
     agenda = models.JSONField(default=list, blank=True, help_text='List of agenda topics or tracks as strings')
+    conference_category = models.ForeignKey(
+        ConferenceCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='conferences',
+        help_text='Conference track / subcategory'
+    )
 
     category = models.ForeignKey(
         TherapyArea,

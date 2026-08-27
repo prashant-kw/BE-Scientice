@@ -12,6 +12,7 @@ class TherapyArea(TimeStampedModel):
     )
     description = models.TextField(blank=True, default='')
     order = models.PositiveIntegerField(default=0, help_text='Display ordering index')
+    is_active = models.BooleanField(default=True, help_text='Controls whether this therapy specialty is active and visible across portal menus and widgets')
 
     class Meta:
         verbose_name = 'Therapy Area'

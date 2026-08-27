@@ -9,6 +9,16 @@ class SiteInfo(TimeStampedModel):
     instagram_url = models.URLField(blank=True, null=True, default='https://instagram.com/scientice')
     website_url = models.URLField(blank=True, null=True, default='https://scientice.org')
 
+    # Portal Homepage Section Visibility Controls
+    show_hero_banner = models.BooleanField(default=True, help_text='Show Top Event Hero Promo Banner on Homepage')
+    show_guidelines_showcase = models.BooleanField(default=True, help_text='Show Featured Guidelines Showcase Section below Hero Banner')
+    show_headline_slider = models.BooleanField(default=True, help_text='Show Headline Articles Slider & Infographics')
+    show_news_widget = models.BooleanField(default=True, help_text='Show Latest News widget in dashboard grid')
+    show_therapy_areas_widget = models.BooleanField(default=True, help_text='Show Therapy Areas widget in dashboard grid')
+    show_conferences_widget = models.BooleanField(default=True, help_text='Show Conferences widget in dashboard grid')
+    show_education_widget = models.BooleanField(default=False, help_text='Show Education widget in dashboard grid')
+    show_guidelines_widget = models.BooleanField(default=True, help_text='Show Guidelines widget in dashboard grid')
+
 
     class Meta:
         verbose_name = 'Site Contact Information'
@@ -16,8 +26,14 @@ class SiteInfo(TimeStampedModel):
 
     @classmethod
     def get_solo(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        try:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except Exception:
+            try:
+                return cls.objects.filter(pk=1).first() or cls(pk=1)
+            except Exception:
+                return cls(pk=1)
 
     def __str__(self):
         return f"Scientice Site Contact Info ({self.email})"

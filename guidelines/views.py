@@ -136,7 +136,11 @@ class GuidelineViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception:
             pass
 
-        qs = Guideline.objects.filter(is_published=True).select_related('category', 'society')
+        qs = Guideline.objects.filter(
+            Q(is_published=True) &
+            (Q(category__isnull=True) | Q(category__is_active=True)) &
+            (Q(society__isnull=True) | Q(society__is_active=True))
+        ).select_related('category', 'society')
 
         # Type filter ('conference' vs 'clinical_practice')
         type_param = self.request.query_params.get('type') or self.request.query_params.get('guideline_type')

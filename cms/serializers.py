@@ -5,11 +5,12 @@ from common.utils import build_absolute_media_url
 from accounts.models import User
 from news.models import Article
 from guidelines.models import Guideline
-from conferences.models import Conference, ConferenceRegistration
+from conferences.models import Conference, ConferenceRegistration, ConferenceCategory
 from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic, InfographicPoint
 from therapyareas.models import TherapyArea
 from sitecontact.models import SiteInfo, ContactMessage
+from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem
 
 from .sanitizers import sanitize_html, sanitize_plain_text
 from .validators import validate_and_clean_image, validate_and_clean_pdf
@@ -112,10 +113,24 @@ class GuidelineCMSSerializer(serializers.ModelSerializer):
         return validate_and_clean_pdf(value)
 
 # ----------------------------------------------------------------------
-# 3. Conference CMS Serializer & Registration Serializer
+# 3. Conference Subcategories & CMS Serializers
 # ----------------------------------------------------------------------
+class ConferenceCategoryCMSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConferenceCategory
+        fields = ['id', 'name', 'slug', 'description', 'order', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_description(self, value):
+        return sanitize_plain_text(value)
+
+
 class ConferenceCMSSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(read_only=True)
+    conference_category_name = serializers.CharField(source='conference_category.name', read_only=True)
     image_display_url = serializers.SerializerMethodField()
     effective_document_url = serializers.SerializerMethodField()
     registrations_count = serializers.IntegerField(source='registrations.count', read_only=True)
@@ -124,6 +139,7 @@ class ConferenceCMSSerializer(serializers.ModelSerializer):
         model = Conference
         fields = [
             'id', 'title', 'slug', 'description', 'agenda',
+            'conference_category', 'conference_category_name',
             'category', 'category_display', 'category_name_override',
             'start_date', 'end_date', 'location',
             'is_virtual_available', 'cme_credits',
@@ -359,7 +375,7 @@ class TherapyAreaCMSSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TherapyArea
-        fields = ['id', 'name', 'slug', 'icon', 'icon_name', 'description', 'order', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'icon', 'icon_name', 'description', 'order', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def validate_name(self, value):
@@ -374,7 +390,13 @@ class TherapyAreaCMSSerializer(serializers.ModelSerializer):
 class SiteInfoCMSSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteInfo
-        fields = ['id', 'phone', 'email', 'address', 'facebook_url', 'instagram_url', 'website_url', 'updated_at']
+        fields = [
+            'id', 'phone', 'email', 'address', 'facebook_url', 'instagram_url', 'website_url',
+            'show_hero_banner', 'show_guidelines_showcase', 'show_headline_slider',
+            'show_news_widget', 'show_therapy_areas_widget', 'show_conferences_widget',
+            'show_education_widget', 'show_guidelines_widget',
+            'updated_at'
+        ]
         read_only_fields = ['id', 'updated_at']
 
     def validate_phone(self, value):
@@ -671,5 +693,57 @@ class ConferenceSocietyCMSSerializer(serializers.ModelSerializer):
 
     def validate_description(self, value):
         return sanitize_plain_text(value).strip()
+
+
+# ----------------------------------------------------------------------
+# Universal Content Section Visibility Serializers
+# ----------------------------------------------------------------------
+class ContentSectionVisibilitySerializer(serializers.ModelSerializer):
+    published_items_count = serializers.IntegerField(read_only=True)
+    total_items_count = serializers.IntegerField(read_only=True)
+    computed_public_status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ContentSectionVisibility
+        fields = [
+            'id',
+            'section_key',
+            'title',
+            'description',
+            'location',
+            'icon',
+            'is_enabled',
+            'auto_hide_if_empty',
+            'display_order',
+            'custom_metadata',
+            'published_items_count',
+            'total_items_count',
+            'computed_public_status',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'section_key', 'created_at', 'updated_at']
+
+    def validate_title(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_description(self, value):
+        return sanitize_plain_text(value)
+
+
+class ContentSectionPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentSectionVisibility
+        fields = [
+            'section_key',
+            'title',
+            'description',
+            'location',
+            'icon',
+            'is_enabled',
+            'auto_hide_if_empty',
+            'display_order',
+        ]
+
 
 

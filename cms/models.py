@@ -149,3 +149,180 @@ class VideoGenerationJob(TimeStampedModel):
 
     def __str__(self):
         return f'{self.bulletin.title}: {self.get_status_display()}'
+
+
+class ContentSectionVisibility(TimeStampedModel):
+    """
+    Universal configuration registry tracking public visibility, live counts,
+    and auto-suppression policies for all portal sections and content modules.
+    """
+    class SectionLocation(models.TextChoices):
+        HOMEPAGE_HERO = 'homepage_hero', 'Homepage Hero & Banner'
+        HOMEPAGE_GRID = 'homepage_grid', 'Homepage Dashboard Grid'
+        SHOWCASE = 'showcase', 'Full-Width Showcase Section'
+        NAVIGATION = 'navigation', 'Main Header Navigation'
+        FOOTER = 'footer', 'Footer Area'
+
+    section_key = models.CharField(
+        max_length=60,
+        unique=True,
+        help_text="Unique programmatic identifier (e.g. 'news_articles', 'conferences', 'education')"
+    )
+    title = models.CharField(
+        max_length=150,
+        help_text="Human-readable title displayed in admin CMS"
+    )
+    description = models.TextField(
+        blank=True,
+        default='',
+        help_text="Explanation of where this section appears and what content it displays"
+    )
+    location = models.CharField(
+        max_length=30,
+        choices=SectionLocation.choices,
+        default=SectionLocation.HOMEPAGE_GRID,
+        help_text="Visual region where this section is rendered"
+    )
+    icon = models.CharField(
+        max_length=60,
+        default='Layers',
+        help_text="Lucide-react icon component name"
+    )
+    is_enabled = models.BooleanField(
+        default=True,
+        help_text="Master toggle: If False, the section is completely hidden from public visitors"
+    )
+    auto_hide_if_empty = models.BooleanField(
+        default=True,
+        help_text="Automatically suppress section on public portal if published item count is 0"
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sorting order in CMS controls and frontend layout"
+    )
+    custom_metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Extensible parameters (e.g. max_items, custom_cta, subtitle)"
+    )
+
+    class Meta:
+        verbose_name = 'Content Section Visibility'
+        verbose_name_plural = 'Content Section Visibility Controls'
+        ordering = ['display_order', 'id']
+
+    def __str__(self):
+        status = "Enabled" if self.is_enabled else "Disabled"
+        return f"{self.title} ({self.section_key}) - {status}"
+
+    @classmethod
+    def ensure_defaults(cls):
+        """Seed or update standard platform content sections."""
+        defaults = [
+            {
+                'section_key': 'hero_banner',
+                'title': 'Top Hero Video Bulletin Banner',
+                'description': 'Hero presenter video bulletin and launch countdown timer at top of homepage',
+                'location': cls.SectionLocation.HOMEPAGE_HERO,
+                'icon': 'Video',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 1,
+            },
+            {
+                'section_key': 'guidelines_showcase',
+                'title': 'Featured Guidelines Showcase',
+                'description': 'Full-width guidelines showcase section with society tabs below hero banner',
+                'location': cls.SectionLocation.SHOWCASE,
+                'icon': 'BookOpen',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 2,
+            },
+            {
+                'section_key': 'headline_slider',
+                'title': 'Headline Articles & Infographics',
+                'description': 'Featured breakthrough articles carousel and clinical infographic spotlight',
+                'location': cls.SectionLocation.HOMEPAGE_HERO,
+                'icon': 'Layers',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 3,
+            },
+            {
+                'section_key': 'news_articles',
+                'title': 'Latest News & Research Articles',
+                'description': 'Medical breakthroughs and latest clinical updates column in dashboard grid',
+                'location': cls.SectionLocation.HOMEPAGE_GRID,
+                'icon': 'Newspaper',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 4,
+            },
+            {
+                'section_key': 'therapy_areas',
+                'title': 'Therapy Areas & Specialties Directory',
+                'description': 'Medical specialties list and interactive specialties directory in grid',
+                'location': cls.SectionLocation.HOMEPAGE_GRID,
+                'icon': 'HeartPulse',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 5,
+            },
+            {
+                'section_key': 'conferences',
+                'title': 'Global Conferences & Symposia',
+                'description': 'Upcoming medical congresses, CME accreditations, and event schedules in grid',
+                'location': cls.SectionLocation.HOMEPAGE_GRID,
+                'icon': 'Calendar',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 6,
+            },
+            {
+                'section_key': 'education',
+                'title': 'Awareness & Medical Education',
+                'description': 'Patient education guides, medical courses, and CME presentations in grid',
+                'location': cls.SectionLocation.HOMEPAGE_GRID,
+                'icon': 'GraduationCap',
+                'is_enabled': False,
+                'auto_hide_if_empty': True,
+                'display_order': 7,
+            },
+            {
+                'section_key': 'guidelines_widget',
+                'title': 'Clinical Practice Guidelines Widget',
+                'description': 'Guidelines quick-access column in the main dashboard grid',
+                'location': cls.SectionLocation.HOMEPAGE_GRID,
+                'icon': 'BookOpen',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 8,
+            },
+            {
+                'section_key': 'key_highlights',
+                'title': 'Key Highlights Deck',
+                'description': 'Global cardiology and clinical breakthrough highlights ticker',
+                'location': cls.SectionLocation.HOMEPAGE_HERO,
+                'icon': 'FileText',
+                'is_enabled': True,
+                'auto_hide_if_empty': True,
+                'display_order': 9,
+            },
+            {
+                'section_key': 'static_pages',
+                'title': 'Static & Legal Pages',
+                'description': 'About, Privacy Policy, Terms, and Contact institutional modal pages',
+                'location': cls.SectionLocation.FOOTER,
+                'icon': 'FileText',
+                'is_enabled': True,
+                'auto_hide_if_empty': False,
+                'display_order': 10,
+            },
+        ]
+        created_or_found = []
+        for d in defaults:
+            obj, _ = cls.objects.get_or_create(section_key=d['section_key'], defaults=d)
+            created_or_found.append(obj)
+        return created_or_found
+

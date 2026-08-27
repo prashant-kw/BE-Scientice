@@ -1,6 +1,15 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Conference, ConferenceRegistration
+from .models import Conference, ConferenceRegistration, ConferenceCategory
+
+@admin.register(ConferenceCategory)
+class ConferenceCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'order', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'description')
+    list_editable = ('is_active', 'order')
+    prepopulated_fields = {'slug': ('name',)}
+
 
 class ConferenceRegistrationInline(admin.TabularInline):
     model = ConferenceRegistration

@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem
+from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, ContentSectionVisibility
+
+@admin.register(ContentSectionVisibility)
+class ContentSectionVisibilityAdmin(admin.ModelAdmin):
+    list_display = ('title', 'section_key', 'location', 'is_enabled', 'auto_hide_if_empty', 'display_order', 'updated_at')
+    list_filter = ('is_enabled', 'location', 'auto_hide_if_empty')
+    search_fields = ('title', 'section_key', 'description')
+    ordering = ('display_order', 'id')
+
 
 @admin.register(Page)
 class PageAdmin(admin.ModelAdmin):
@@ -37,3 +45,4 @@ class KeyHighlightItemAdmin(admin.ModelAdmin):
     list_display = ('number', 'category', 'title', 'is_published', 'order', 'created_at')
     list_filter = ('category', 'is_published')
     search_fields = ('title', 'summary')
+

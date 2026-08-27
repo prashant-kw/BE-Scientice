@@ -13,18 +13,19 @@ from common.throttling import ContactSubmissionRateThrottle
 
 from accounts.models import User
 from news.models import Article
-from guidelines.models import Guideline
-from conferences.models import Conference, ConferenceRegistration
+from guidelines.models import Guideline, ConferenceSociety
+from conferences.models import Conference, ConferenceRegistration, ConferenceCategory
 from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic
 from therapyareas.models import TherapyArea
 from sitecontact.models import SiteInfo, ContactMessage
-from cms.models import VideoBulletinLead
+from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem
 from .serializers import (
     ArticleCMSSerializer,
     GuidelineCMSSerializer,
     ConferenceCMSSerializer,
     ConferenceRegistrationCMSListSerializer,
+    ConferenceCategoryCMSSerializer,
     EducationCategoryCMSSerializer,
     EducationResourceCMSSerializer,
     InfographicCMSSerializer,
@@ -38,6 +39,10 @@ from .serializers import (
     VideoBulletinPublicSerializer,
     VideoBulletinLeadSerializer,
     VideoGenerationJobSerializer,
+    ContentSectionVisibilitySerializer,
+    ContentSectionPublicSerializer,
+    ConferenceSocietyCMSSerializer,
+    KeyHighlightItemSerializer,
 )
 
 # ----------------------------------------------------------------------
@@ -203,10 +208,18 @@ class TherapyAreaCMSViewSet(viewsets.ModelViewSet):
     queryset = TherapyArea.objects.all()
     serializer_class = TherapyAreaCMSSerializer
     permission_classes = [IsContentEditor]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_active']
     search_fields = ['name', 'description']
     ordering_fields = ['order', 'name', 'created_at']
     ordering = ['order', 'name']
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        ta = self.get_object()
+        ta.is_active = not ta.is_active
+        ta.save(update_fields=['is_active', 'updated_at'])
+        return Response({'id': ta.id, 'name': ta.name, 'is_active': ta.is_active})
 
 # ----------------------------------------------------------------------
 # 7. SiteInfo CMS View (Singleton Retrieve/Update - No POST/DELETE)
@@ -548,5 +561,213 @@ class ConferenceSocietyCMSViewSet(viewsets.ModelViewSet):
         society.is_active = not society.is_active
         society.save(update_fields=['is_active', 'updated_at'])
         return Response({'id': society.id, 'is_active': society.is_active})
+
+
+# ----------------------------------------------------------------------
+# Conference Categories / Formats (Subcategory Visibility)
+# ----------------------------------------------------------------------
+class ConferenceCategoryCMSViewSet(viewsets.ModelViewSet):
+    queryset = ConferenceCategory.objects.all()
+    serializer_class = ConferenceCategoryCMSSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_active']
+    search_fields = ['name', 'description']
+    ordering_fields = ['order', 'name', 'created_at']
+    ordering = ['order', 'name']
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        cat = self.get_object()
+        cat.is_active = not cat.is_active
+        cat.save(update_fields=['is_active', 'updated_at'])
+        return Response({'id': cat.id, 'name': cat.name, 'is_active': cat.is_active})
+
+
+# ----------------------------------------------------------------------
+# Universal Section Visibility & Auto-Suppression Views
+# ----------------------------------------------------------------------
+SECTION_SITE_INFO_MAP = {
+    'hero_banner': 'show_hero_banner',
+    'guidelines_showcase': 'show_guidelines_showcase',
+    'headline_slider': 'show_headline_slider',
+    'news_articles': 'show_news_widget',
+    'therapy_areas': 'show_therapy_areas_widget',
+    'conferences': 'show_conferences_widget',
+    'education': 'show_education_widget',
+    'guidelines_widget': 'show_guidelines_widget',
+}
+
+
+def get_section_live_counts(section_key):
+    """
+    Compute live published items count and total items count for any section.
+    """
+    now = timezone.now()
+    try:
+        if section_key == 'hero_banner':
+            total = VideoBulletin.objects.count()
+            published = VideoBulletin.objects.filter(is_published=True).filter(
+                models.Q(schedule_end_datetime__isnull=True) | models.Q(schedule_end_datetime__gte=now)
+            ).count()
+            return published, total
+        elif section_key == 'guidelines_showcase':
+            total = Guideline.objects.count()
+            published = Guideline.objects.filter(is_published=True).count()
+            return published, total
+        elif section_key == 'headline_slider':
+            total = Article.objects.filter(is_headline=True).count() + Infographic.objects.count()
+            published = (
+                Article.objects.filter(is_published=True, is_headline=True).count() +
+                Infographic.objects.filter(is_published=True).count()
+            )
+            return published, total
+        elif section_key == 'news_articles':
+            total = Article.objects.count()
+            published = Article.objects.filter(is_published=True).count()
+            return published, total
+        elif section_key == 'therapy_areas':
+            total = TherapyArea.objects.count()
+            published = TherapyArea.objects.filter(is_active=True).count()
+            return published, total
+        elif section_key == 'conferences':
+            total = Conference.objects.count()
+            published = Conference.objects.filter(is_published=True).count()
+            return published, total
+        elif section_key == 'education':
+            total = EducationResource.objects.count()
+            published = EducationResource.objects.filter(is_published=True, category__is_active=True).count()
+            return published, total
+        elif section_key == 'guidelines_widget':
+            total = Guideline.objects.count()
+            published = Guideline.objects.filter(is_published=True).count()
+            return published, total
+        elif section_key == 'key_highlights':
+            total = KeyHighlightItem.objects.count()
+            published = KeyHighlightItem.objects.filter(is_published=True).count()
+            return published, total
+        elif section_key == 'static_pages':
+            total = Page.objects.count()
+            published = Page.objects.filter(is_published=True).count()
+            return published, total
+    except Exception as exc:
+        print(f"Error resolving counts for section {section_key}: {exc}")
+    return 0, 0
+
+
+class ContentSectionVisibilityCMSViewSet(viewsets.ModelViewSet):
+    """
+    CMS management of universal section visibility flags, live counters,
+    and automatic empty-state suppression rules.
+    """
+    queryset = ContentSectionVisibility.objects.all()
+    serializer_class = ContentSectionVisibilitySerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_enabled', 'location', 'auto_hide_if_empty']
+    search_fields = ['title', 'section_key', 'description']
+    ordering_fields = ['display_order', 'title', 'is_enabled']
+    ordering = ['display_order', 'id']
+    lookup_field = 'section_key'
+
+    def get_queryset(self):
+        ContentSectionVisibility.ensure_defaults()
+        return ContentSectionVisibility.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        ContentSectionVisibility.ensure_defaults()
+        queryset = self.filter_queryset(self.get_queryset())
+        results = []
+        for sec in queryset:
+            published_count, total_count = get_section_live_counts(sec.section_key)
+            if not sec.is_enabled:
+                public_status = 'disabled'
+            elif sec.auto_hide_if_empty and published_count == 0:
+                public_status = 'suppressed_empty'
+            else:
+                public_status = 'active'
+
+            data = ContentSectionVisibilitySerializer(sec, context={'request': request}).data
+            data['published_items_count'] = published_count
+            data['total_items_count'] = total_count
+            data['computed_public_status'] = public_status
+            results.append(data)
+        return Response(results)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        published_count, total_count = get_section_live_counts(instance.section_key)
+        if not instance.is_enabled:
+            public_status = 'disabled'
+        elif instance.auto_hide_if_empty and published_count == 0:
+            public_status = 'suppressed_empty'
+        else:
+            public_status = 'active'
+
+        data = ContentSectionVisibilitySerializer(instance, context={'request': request}).data
+        data['published_items_count'] = published_count
+        data['total_items_count'] = total_count
+        data['computed_public_status'] = public_status
+        return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def toggle(self, request, section_key=None):
+        instance = self.get_object()
+        instance.is_enabled = not instance.is_enabled
+        instance.save(update_fields=['is_enabled', 'updated_at'])
+
+        # Synchronize with SiteInfo model boolean if mapped
+        site_info_field = SECTION_SITE_INFO_MAP.get(instance.section_key)
+        if site_info_field:
+            try:
+                site_info = SiteInfo.get_solo()
+                setattr(site_info, site_info_field, instance.is_enabled)
+                site_info.save(update_fields=[site_info_field, 'updated_at'])
+            except Exception as e:
+                print(f"Failed to sync SiteInfo for {instance.section_key}: {e}")
+
+        published_count, total_count = get_section_live_counts(instance.section_key)
+        if not instance.is_enabled:
+            public_status = 'disabled'
+        elif instance.auto_hide_if_empty and published_count == 0:
+            public_status = 'suppressed_empty'
+        else:
+            public_status = 'active'
+
+        data = ContentSectionVisibilitySerializer(instance, context={'request': request}).data
+        data['published_items_count'] = published_count
+        data['total_items_count'] = total_count
+        data['computed_public_status'] = public_status
+        return Response(data)
+
+    @action(detail=False, methods=['post'])
+    def reset_defaults(self, request):
+        ContentSectionVisibility.ensure_defaults()
+        return self.list(request)
+
+
+class ContentSectionPublicView(APIView):
+    """
+    Public endpoint returning visibility states and live availability for all sections.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        ContentSectionVisibility.ensure_defaults()
+        sections = ContentSectionVisibility.objects.all()
+        result = {}
+        for sec in sections:
+            published_count, total_count = get_section_live_counts(sec.section_key)
+            is_visible = bool(sec.is_enabled and (not sec.auto_hide_if_empty or published_count > 0))
+            result[sec.section_key] = {
+                'title': sec.title,
+                'location': sec.location,
+                'is_enabled': sec.is_enabled,
+                'auto_hide_if_empty': sec.auto_hide_if_empty,
+                'published_count': published_count,
+                'is_visible': is_visible,
+            }
+        return Response(result)
+
 
 

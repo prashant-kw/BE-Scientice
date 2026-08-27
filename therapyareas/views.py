@@ -8,7 +8,7 @@ class TherapyAreaViewSet(viewsets.ReadOnlyModelViewSet):
     API endpoint for listing and retrieving Therapy Areas / Medical Specialties.
     Supports filtering and search by name.
     """
-    queryset = TherapyArea.objects.all().order_by('order', 'name')
+    queryset = TherapyArea.objects.filter(is_active=True).order_by('order', 'name')
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']

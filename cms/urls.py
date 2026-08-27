@@ -19,6 +19,9 @@ from .views import (
     KeyHighlightItemCMSViewSet,
     KeyHighlightItemPublicViewSet,
     ConferenceSocietyCMSViewSet,
+    ConferenceCategoryCMSViewSet,
+    ContentSectionVisibilityCMSViewSet,
+    ContentSectionPublicView,
 )
 
 
@@ -27,10 +30,12 @@ router.register(r'articles', ArticleCMSViewSet, basename='cms-articles')
 router.register(r'guidelines', GuidelineCMSViewSet, basename='cms-guidelines')
 router.register(r'societies', ConferenceSocietyCMSViewSet, basename='cms-societies')
 router.register(r'conferences', ConferenceCMSViewSet, basename='cms-conferences')
+router.register(r'conference-categories', ConferenceCategoryCMSViewSet, basename='cms-conference-categories')
 router.register(r'education-categories', EducationCategoryCMSViewSet, basename='cms-education-categories')
 router.register(r'education', EducationResourceCMSViewSet, basename='cms-education')
 router.register(r'infographics', InfographicCMSViewSet, basename='cms-infographics')
 router.register(r'therapy-areas', TherapyAreaCMSViewSet, basename='cms-therapy-areas')
+router.register(r'section-visibility', ContentSectionVisibilityCMSViewSet, basename='cms-section-visibility')
 router.register(r'messages', ContactMessageCMSViewSet, basename='cms-messages')
 router.register(r'users', UserCMSViewSet, basename='cms-users')
 router.register(r'pages', PageCMSViewSet, basename='cms-pages')
@@ -44,5 +49,6 @@ router.register(r'public-key-highlights', KeyHighlightItemPublicViewSet, basenam
 urlpatterns = [
     path('stats/', CMSStatsView.as_view(), name='cms-stats'),
     path('site-info/', SiteInfoCMSView.as_view(), name='cms-site-info'),
+    path('sections/public/', ContentSectionPublicView.as_view(), name='public-section-visibility'),
     path('', include(router.urls)),
 ]
