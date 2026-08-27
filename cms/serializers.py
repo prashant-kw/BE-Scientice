@@ -471,6 +471,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
 
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
+            'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
+            'schedule_start_datetime', 'schedule_end_datetime',
             'is_published', 'published_at', 'created_at', 'updated_at',
         ]
 
@@ -577,7 +579,10 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
             'key_highlights', 'previous_events', 'event_playlist',
             'backgroundImageUrl', 'promoBannerImageUrl', 'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'customAvatarImageUrl', 'videoUrl',
 
-            'duration_seconds', 'launch_datetime', 'published_at', 'updated_at',
+            'duration_seconds', 'launch_datetime',
+            'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
+            'schedule_start_datetime', 'schedule_end_datetime',
+            'published_at', 'updated_at',
         ]
 
 

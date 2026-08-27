@@ -1,4 +1,5 @@
 import csv
+from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, generics, permissions, status, filters, mixins
@@ -446,11 +447,19 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
 
 
 class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = VideoBulletin.objects.filter(is_published=True).order_by('-launch_datetime', '-published_at')
     serializer_class = VideoBulletinPublicSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = None
     lookup_field = 'slug'
+
+    def get_queryset(self):
+        now = timezone.now()
+        qs = VideoBulletin.objects.filter(is_published=True)
+        if self.action == 'list':
+            qs = qs.filter(
+                models.Q(schedule_end_datetime__isnull=True) | models.Q(schedule_end_datetime__gte=now)
+            )
+        return qs.order_by('-published_at', '-created_at')
 
 
 

@@ -496,3 +496,57 @@ class CMSBackendAPITests(APITestCase):
         self.assertEqual(self.cardio.icon, 'Brain')
         self.assertEqual(patch_resp2.data['icon'], 'Brain')
 
+    # ------------------------------------------------------------------
+    # 10. Video Bulletin Banner Scheduling & Countdown Timer
+    # ------------------------------------------------------------------
+    def test_video_bulletin_banner_scheduling_and_countdown_timer(self):
+        """Video Bulletin supports hero banner upload, schedule dates, and countdown timer fields."""
+        from django.utils import timezone
+        from cms.models import VideoBulletin
+
+        self.client.force_authenticate(user=self.staff_admin)
+        banner_img = create_test_image('JPEG')
+
+        now = timezone.now()
+        start_time = now - timezone.timedelta(hours=1)
+        end_time = now + timezone.timedelta(days=5)
+        event_time = now + timezone.timedelta(days=3)
+
+        payload = {
+            'title': 'ESC Congress 2026 Special Bulletin',
+            'slug': 'esc-congress-2026-special',
+            'eyebrow': 'BREAKING NEWS',
+            'summary': 'Live coverage of breakthroughs in heart failure management.',
+            'script': 'Welcome to our special ESC Congress bulletin.',
+            'promo_banner_image': banner_img,
+            'show_countdown_timer': True,
+            'event_timer_label': 'ESC Congress 2026 Starts In',
+            'event_start_datetime': event_time.isoformat(),
+            'schedule_start_datetime': start_time.isoformat(),
+            'schedule_end_datetime': end_time.isoformat(),
+            'is_published': True,
+        }
+
+        # Create bulletin via CMS
+        create_resp = self.client.post(reverse('cms-video-bulletins-list'), payload, format='multipart')
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        bulletin_id = create_resp.data['id']
+
+        bulletin = VideoBulletin.objects.get(id=bulletin_id)
+        self.assertTrue(bulletin.show_countdown_timer)
+        self.assertEqual(bulletin.event_timer_label, 'ESC Congress 2026 Starts In')
+        self.assertIsNotNone(bulletin.promo_banner_image)
+        self.assertTrue(create_resp.data['promoBannerImageUrl'].startswith('http://testserver/media/'))
+
+        # Public list endpoint includes active scheduled bulletin and new fields
+        public_resp = self.client.get(reverse('video-report-list'))
+        self.assertEqual(public_resp.status_code, status.HTTP_200_OK)
+        found = next((b for b in public_resp.data if b['id'] == bulletin_id), None)
+        self.assertIsNotNone(found)
+        self.assertTrue(found['show_countdown_timer'])
+        self.assertEqual(found['event_timer_label'], 'ESC Congress 2026 Starts In')
+        self.assertIn('event_start_datetime', found)
+        self.assertIn('schedule_start_datetime', found)
+        self.assertIn('schedule_end_datetime', found)
+
+

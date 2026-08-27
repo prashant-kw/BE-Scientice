@@ -60,6 +60,16 @@ class VideoBulletin(TimeStampedModel):
     video_url = models.URLField(max_length=500, blank=True, default='')
     duration_seconds = models.PositiveIntegerField(default=0)
     launch_datetime = models.DateTimeField(default=timezone.now, help_text="Scheduled launch date and time for news timer countdown on home screen.")
+
+    # Event Countdown Timer Configuration
+    show_countdown_timer = models.BooleanField(default=True, help_text="Show countdown timer below banner on homepage")
+    event_start_datetime = models.DateTimeField(null=True, blank=True, help_text="Event start date and time for countdown timer")
+    event_timer_label = models.CharField(max_length=200, blank=True, default='', help_text="Custom label for event countdown timer (e.g. ESC Congress 2026 Starts In)")
+
+    # Banner Change Scheduling
+    schedule_start_datetime = models.DateTimeField(null=True, blank=True, help_text="Schedule when this banner should start displaying on homepage")
+    schedule_end_datetime = models.DateTimeField(null=True, blank=True, help_text="Schedule when this banner should stop displaying on homepage")
+
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(default=timezone.now)
 

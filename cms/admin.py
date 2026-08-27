@@ -11,8 +11,8 @@ class PageAdmin(admin.ModelAdmin):
 
 @admin.register(VideoBulletin)
 class VideoBulletinAdmin(admin.ModelAdmin):
-    list_display = ('title', 'avatar', 'event_title', 'parent_event', 'loop_start_clip', 'is_published', 'published_at', 'updated_at')
-    list_filter = ('avatar', 'is_published')
+    list_display = ('title', 'avatar', 'event_title', 'show_countdown_timer', 'schedule_start_datetime', 'schedule_end_datetime', 'is_published', 'published_at', 'updated_at')
+    list_filter = ('avatar', 'is_published', 'show_countdown_timer')
     search_fields = ('title', 'summary', 'script', 'event_title')
     prepopulated_fields = {'slug': ('title',)}
 
