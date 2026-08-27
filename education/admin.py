@@ -3,9 +3,10 @@ from .models import EducationCategory, EducationResource
 
 @admin.register(EducationCategory)
 class EducationCategoryAdmin(admin.ModelAdmin):
-    list_display = ('order', 'title', 'key', 'icon')
+    list_display = ('order', 'title', 'key', 'is_active', 'icon')
     list_display_links = ('title',)
-    list_editable = ('order',)
+    list_editable = ('order', 'is_active')
+    list_filter = ('is_active', 'key')
     search_fields = ('title', 'description', 'key')
 
 @admin.register(EducationResource)

@@ -13,6 +13,7 @@ class EducationCategory(TimeStampedModel):
     description = models.TextField()
     icon = models.CharField(max_length=60, default='BookOpen', help_text='lucide-react icon name (e.g. Users, GraduationCap, FileCheck)')
     order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True, help_text='Controls whether this education category is enabled and visible on the website')
 
     class Meta:
         verbose_name = 'Education Category'

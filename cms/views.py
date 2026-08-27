@@ -24,6 +24,7 @@ from .serializers import (
     GuidelineCMSSerializer,
     ConferenceCMSSerializer,
     ConferenceRegistrationCMSListSerializer,
+    EducationCategoryCMSSerializer,
     EducationResourceCMSSerializer,
     InfographicCMSSerializer,
     TherapyAreaCMSSerializer,
@@ -138,8 +139,25 @@ class ConferenceCMSViewSet(viewsets.ModelViewSet):
         return response
 
 # ----------------------------------------------------------------------
-# 4. Education Resource CMS ViewSet
+# 4. Education Category & Resource CMS ViewSets
 # ----------------------------------------------------------------------
+class EducationCategoryCMSViewSet(viewsets.ModelViewSet):
+    queryset = EducationCategory.objects.all().prefetch_related('resources')
+    serializer_class = EducationCategoryCMSSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_active', 'key']
+    search_fields = ['title', 'description', 'key']
+    ordering_fields = ['order', 'id', 'title', 'is_active', 'created_at']
+    ordering = ['order', 'id']
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        cat = self.get_object()
+        cat.is_active = not cat.is_active
+        cat.save(update_fields=['is_active', 'updated_at'])
+        return Response({'id': cat.id, 'key': cat.key, 'is_active': cat.is_active})
+
 class EducationResourceCMSViewSet(viewsets.ModelViewSet):
     queryset = EducationResource.objects.all().select_related('category')
     serializer_class = EducationResourceCMSSerializer

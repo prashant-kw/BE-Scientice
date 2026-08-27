@@ -200,8 +200,25 @@ class ConferenceRegistrationCMSListSerializer(serializers.ModelSerializer):
         ]
 
 # ----------------------------------------------------------------------
-# 4. Education Resource CMS Serializer
+# 4. Education Category & Resource CMS Serializers
 # ----------------------------------------------------------------------
+class EducationCategoryCMSSerializer(serializers.ModelSerializer):
+    resources_count = serializers.IntegerField(source='resources.count', read_only=True)
+
+    class Meta:
+        model = EducationCategory
+        fields = [
+            'id', 'key', 'title', 'description', 'icon', 'order',
+            'is_active', 'resources_count', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_title(self, value):
+        return sanitize_plain_text(value)
+
+    def validate_description(self, value):
+        return sanitize_plain_text(value)
+
 class EducationResourceCMSSerializer(serializers.ModelSerializer):
     category_title = serializers.CharField(source='category.title', read_only=True)
     category_key = serializers.CharField(source='category.key', read_only=True)

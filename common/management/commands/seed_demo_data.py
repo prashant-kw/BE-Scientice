@@ -386,6 +386,7 @@ class Command(BaseCommand):
                 'description': 'Informative, accessible medical resources designed for patients and caregivers to enhance health literacy.',
                 'icon': 'Users',
                 'order': 1,
+                'is_active': True,
             },
             {
                 'key': EducationCategory.Key.MEDICAL,
@@ -393,13 +394,15 @@ class Command(BaseCommand):
                 'description': 'Peer-reviewed clinical modules, diagnostic algorithms, and procedural guides for healthcare professionals.',
                 'icon': 'BookOpen',
                 'order': 2,
+                'is_active': True,
             },
             {
                 'key': EducationCategory.Key.CME,
-                'title': 'CME & Skill Workshops',
+                'title': 'CME & Guidelines',
                 'description': 'Accredited continuing medical education certifications, case studies, and interactive clinical masterclasses.',
                 'icon': 'GraduationCap',
                 'order': 3,
+                'is_active': False,
             },
         ]
 
@@ -411,18 +414,36 @@ class Command(BaseCommand):
                     'description': cat_data['description'],
                     'icon': cat_data['icon'],
                     'order': cat_data['order'],
+                    'is_active': cat_data['is_active'],
                 }
             )
-            # Add sample resources for this category
+            # Add sample resources for this category if empty
             if cat_obj.resources.count() == 0:
-                EducationResource.objects.create(
-                    category=cat_obj,
-                    title=f"Core Clinical Principles: {cat_obj.title}",
-                    description=f"Essential foundation guide and high-yield insights in {cat_obj.title.lower()}.",
-                    body=f"<p>Comprehensive clinical overview and evidence-based recommendations covering key fundamentals in {cat_obj.title.lower()}.</p>",
-                    external_url="https://scientice.org/education",
-                    is_published=True,
-                )
+                if cat_obj.key == EducationCategory.Key.PATIENT:
+                    EducationResource.objects.create(
+                        category=cat_obj,
+                        title="Patient Awareness Handbook: Comprehensive Diabetes & Cardiovascular Health",
+                        description="Step-by-step patient guidance on glycemic management, blood pressure monitoring, and heart-healthy lifestyle interventions.",
+                        body="<p>This comprehensive patient education handbook covers essential self-management strategies for individuals with type 2 diabetes and hypertension.</p>",
+                        is_published=True,
+                    )
+                elif cat_obj.key == EducationCategory.Key.MEDICAL:
+                    EducationResource.objects.create(
+                        category=cat_obj,
+                        title="Clinical Specialist Module: Advanced Echocardiography & Hemodynamic Assessment",
+                        description="Physician educational booklet on Doppler assessment, strain imaging protocols, and diastolic dysfunction evaluation.",
+                        body="<p>A high-yield clinical booklet designed for cardiology fellows and practicing clinicians.</p>",
+                        is_published=True,
+                    )
+                else:
+                    EducationResource.objects.create(
+                        category=cat_obj,
+                        title=f"Core Clinical Principles: {cat_obj.title}",
+                        description=f"Essential foundation guide and high-yield insights in {cat_obj.title.lower()}.",
+                        body=f"<p>Comprehensive clinical overview and evidence-based recommendations covering key fundamentals in {cat_obj.title.lower()}.</p>",
+                        external_url="https://scientice.org/education",
+                        is_published=True,
+                    )
         self.stdout.write(self.style.SUCCESS('Seeded Education Categories and foundational resources.'))
 
         # 8. Seed Guidelines

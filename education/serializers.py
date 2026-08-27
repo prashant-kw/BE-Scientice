@@ -3,9 +3,11 @@ from common.utils import build_absolute_media_url
 from .models import EducationCategory, EducationResource
 
 class EducationCategorySerializer(serializers.ModelSerializer):
+    isActive = serializers.BooleanField(source='is_active', read_only=True)
+
     class Meta:
         model = EducationCategory
-        fields = ['id', 'key', 'title', 'description', 'icon', 'order']
+        fields = ['id', 'key', 'title', 'description', 'icon', 'order', 'is_active', 'isActive']
 
 class EducationResourceSerializer(serializers.ModelSerializer):
     categoryKey = serializers.CharField(source='category.key', read_only=True)

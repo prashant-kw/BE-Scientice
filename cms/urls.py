@@ -4,16 +4,7 @@ from .views import (
     ArticleCMSViewSet,
     GuidelineCMSViewSet,
     ConferenceCMSViewSet,
-    EducationResourceCMSViewSet,
-    InfographicCMSViewSet,
-    TherapyAreaCMSViewSet,
-    SiteInfoCMSView)
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import (
-    ArticleCMSViewSet,
-    GuidelineCMSViewSet,
-    ConferenceCMSViewSet,
+    EducationCategoryCMSViewSet,
     EducationResourceCMSViewSet,
     InfographicCMSViewSet,
     TherapyAreaCMSViewSet,
@@ -36,6 +27,7 @@ router.register(r'articles', ArticleCMSViewSet, basename='cms-articles')
 router.register(r'guidelines', GuidelineCMSViewSet, basename='cms-guidelines')
 router.register(r'societies', ConferenceSocietyCMSViewSet, basename='cms-societies')
 router.register(r'conferences', ConferenceCMSViewSet, basename='cms-conferences')
+router.register(r'education-categories', EducationCategoryCMSViewSet, basename='cms-education-categories')
 router.register(r'education', EducationResourceCMSViewSet, basename='cms-education')
 router.register(r'infographics', InfographicCMSViewSet, basename='cms-infographics')
 router.register(r'therapy-areas', TherapyAreaCMSViewSet, basename='cms-therapy-areas')
