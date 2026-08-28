@@ -552,8 +552,12 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'summary': item.summary,
                 'bullet_points': item.bullet_points,
                 'duration_seconds': item.duration_seconds,
+                'schedule_start_datetime': item.schedule_start_datetime,
+                'event_start_datetime': item.event_start_datetime,
+                'launch_datetime': item.launch_datetime,
                 'published_at': item.published_at,
                 'created_at': item.created_at,
+
                 'backgroundImageUrl': self._url(item.background_image, item.background_image_url),
                 'customAvatarImageUrl': self._url(item.custom_avatar_image),
             })

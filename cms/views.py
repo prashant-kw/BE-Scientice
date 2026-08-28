@@ -407,8 +407,11 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
     def toggle_publish(self, request, pk=None):
         bulletin = self.get_object()
         bulletin.is_published = not bulletin.is_published
-        bulletin.save(update_fields=['is_published', 'updated_at'])
+        if bulletin.is_published:
+            bulletin.published_at = timezone.now()
+        bulletin.save(update_fields=['is_published', 'published_at', 'updated_at'])
         return Response({'id': bulletin.id, 'is_published': bulletin.is_published})
+
 
     @action(detail=True, methods=['post'])
     def generate_video(self, request, pk=None):
@@ -472,7 +475,15 @@ class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(
                 models.Q(schedule_end_datetime__isnull=True) | models.Q(schedule_end_datetime__gte=now)
             )
-        return qs.order_by('-published_at', '-created_at')
+        return qs.order_by(
+            models.F('schedule_start_datetime').desc(nulls_last=True),
+            models.F('event_start_datetime').desc(nulls_last=True),
+            models.F('launch_datetime').desc(nulls_last=True),
+            '-published_at',
+            '-created_at'
+        )
+
+
 
 
 
