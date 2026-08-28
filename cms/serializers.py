@@ -536,7 +536,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         if obj.loop_start_clip_id:
             q_filter |= models.Q(id=obj.loop_start_clip_id)
 
-        qs = VideoBulletin.objects.filter(q_filter).distinct().order_by('created_at', 'id')
+        qs = VideoBulletin.objects.filter(q_filter, is_published=True).distinct().order_by('created_at', 'id')
+
 
         playlist = []
         for item in qs:
