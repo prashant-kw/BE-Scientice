@@ -611,8 +611,9 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
             'duration_seconds', 'launch_datetime',
             'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
             'schedule_start_datetime', 'schedule_end_datetime',
-            'published_at', 'updated_at',
+            'is_published', 'published_at', 'updated_at',
         ]
+
 
 
         read_only_fields = fields
