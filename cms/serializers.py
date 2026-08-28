@@ -546,6 +546,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'id': item.id,
                 'title': item.title,
                 'slug': item.slug,
+                'is_published': item.is_published,
                 'loop_start_clip': item.loop_start_clip_id,
                 'videoUrl': v_url,
                 'summary': item.summary,
@@ -556,6 +557,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'backgroundImageUrl': self._url(item.background_image, item.background_image_url),
                 'customAvatarImageUrl': self._url(item.custom_avatar_image),
             })
+
         return playlist
 
 
