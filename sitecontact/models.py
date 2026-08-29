@@ -19,6 +19,10 @@ class SiteInfo(TimeStampedModel):
     show_education_widget = models.BooleanField(default=False, help_text='Show Education widget in dashboard grid')
     show_guidelines_widget = models.BooleanField(default=True, help_text='Show Guidelines widget in dashboard grid')
 
+    # After Event Guidelines Feature
+    show_after_event_guidelines = models.BooleanField(default=False, help_text='Show a popup containing guidelines after the hero event banner')
+    after_event_guidelines_badge_text = models.CharField(max_length=150, blank=True, default='New', help_text="Text to show on the trigger badge (e.g., 'New')")
+    after_event_guidelines_list = models.JSONField(default=list, blank=True, help_text="List of guideline links. Format: [{title, link_url, is_pdf}]")
 
     class Meta:
         verbose_name = 'Site Contact Information'

@@ -74,12 +74,6 @@ class VideoBulletin(TimeStampedModel):
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(default=timezone.now)
 
-    # ESC Congress Guidelines Popup (Below Banner)
-    show_esc_guidelines_popup = models.BooleanField(default=False, help_text="Show a popup below the promo banner")
-    esc_guidelines_badge_text = models.CharField(max_length=150, blank=True, default='New', help_text="Text to show on the trigger badge (e.g., 'New')")
-    esc_guidelines = models.JSONField(default=list, blank=True, help_text="List of guideline links. Format: [{title, link_url, is_pdf}]")
-
-
     class Meta:
         ordering = ['-published_at', '-created_at']
         verbose_name = 'Video News Bulletin'

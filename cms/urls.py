@@ -22,6 +22,7 @@ from .views import (
     ConferenceCategoryCMSViewSet,
     ContentSectionVisibilityCMSViewSet,
     ContentSectionPublicView,
+    CMSFileUploadView,
 )
 
 
@@ -50,5 +51,7 @@ urlpatterns = [
     path('stats/', CMSStatsView.as_view(), name='cms-stats'),
     path('site-info/', SiteInfoCMSView.as_view(), name='cms-site-info'),
     path('sections/public/', ContentSectionPublicView.as_view(), name='public-section-visibility'),
+    path('sections/live-counts/', ContentSectionPublicView.as_view(), name='cms-section-live-counts'),
+    path('upload/', CMSFileUploadView.as_view(), name='cms-file-upload'),
     path('', include(router.urls)),
 ]

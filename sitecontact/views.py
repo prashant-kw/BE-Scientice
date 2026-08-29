@@ -77,8 +77,10 @@ class SiteInfoView(APIView):
                 'showConferencesWidget': True,
                 'showEducationWidget': False,
                 'showGuidelinesWidget': True,
+                'show_after_event_guidelines': False,
+                'after_event_guidelines_badge_text': 'New',
+                'after_event_guidelines_list': [],
             })
-
 
 class ContactMessageCreateView(generics.CreateAPIView):
     """

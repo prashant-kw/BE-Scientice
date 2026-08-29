@@ -59,6 +59,30 @@ from .serializers import (
 # ----------------------------------------------------------------------
 # 1. Article CMS ViewSet
 # ----------------------------------------------------------------------
+from django.core.files.storage import default_storage
+from django.utils.text import get_valid_filename
+import os
+import uuid
+
+class CMSFileUploadView(APIView):
+    """
+    Generic endpoint to upload a file (e.g. PDF) and return its absolute URL.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generate a safe, unique filename
+        ext = os.path.splitext(file_obj.name)[1]
+        filename = f"{uuid.uuid4().hex}{ext}"
+        path = default_storage.save(f"uploads/{filename}", file_obj)
+        url = request.build_absolute_uri(default_storage.url(path))
+        
+        return Response({'url': url})
+
 class ArticleCMSViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all().select_related('category')
     serializer_class = ArticleCMSSerializer

@@ -53,7 +53,8 @@ class SiteInfoSerializer(serializers.ModelSerializer):
             'phone', 'email', 'address', 'facebookUrl', 'instagramUrl', 'websiteUrl',
             'showHeroBanner', 'showGuidelinesShowcase', 'showHeadlineSlider',
             'showNewsWidget', 'showTherapyAreasWidget', 'showConferencesWidget',
-            'showEducationWidget', 'showGuidelinesWidget'
+            'showEducationWidget', 'showGuidelinesWidget',
+            'show_after_event_guidelines', 'after_event_guidelines_badge_text', 'after_event_guidelines_list'
         ]
 
 class ContactMessageSerializer(serializers.ModelSerializer):
