@@ -630,13 +630,11 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
             'duration_seconds', 'launch_datetime',
             'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
             'schedule_start_datetime', 'schedule_end_datetime',
-<<<<<<< HEAD
             'show_esc_guidelines_popup', 'esc_guidelines_badge_text', 'esc_guidelines',
-            'published_at', 'updated_at',
-=======
             'is_published', 'published_at', 'updated_at',
->>>>>>> 67bbf117fc57d99f6fa2c7d026596bd3e3f6ce64
         ]
+
+
 
 
 
