@@ -657,10 +657,10 @@ class VideoBulletinLeadSerializer(serializers.ModelSerializer):
 
         read_only_fields = ['id', 'created_at']
         extra_kwargs = {
-            'name': {'required': True, 'allow_blank': False},
-            'email': {'required': True, 'allow_blank': False},
-            'mobile': {'required': True, 'allow_blank': False},
-        }
+             'name': {'required': True, 'allow_blank': False},
+             'email': {'required': True, 'allow_blank': False},
+             'mobile': {'required': False, 'allow_blank': True},
+         }
 
     def validate_name(self, value):
         cleaned = sanitize_plain_text(value).strip()
@@ -669,11 +669,14 @@ class VideoBulletinLeadSerializer(serializers.ModelSerializer):
         return cleaned
 
     def validate_mobile(self, value):
+        if not value:
+            return ''
         cleaned = sanitize_plain_text(value).strip()
         digits = ''.join(character for character in cleaned if character.isdigit())
-        if len(digits) < 7 or len(digits) > 15:
+        if digits and (len(digits) < 7 or len(digits) > 15):
             raise serializers.ValidationError('Enter a valid mobile number with 7 to 15 digits.')
         return cleaned
+
 
     def validate_interests(self, value):
         if not isinstance(value, list) or len(value) > 12:

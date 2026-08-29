@@ -149,11 +149,12 @@ class KeyHighlightItem(TimeStampedModel):
 
 class VideoBulletinLead(TimeStampedModel):
     bulletin = models.ForeignKey(VideoBulletin, on_delete=models.CASCADE, related_name='leads')
-    mobile = models.CharField(max_length=30)
+    mobile = models.CharField(max_length=30, blank=True, default='')
     name = models.CharField(max_length=255, blank=True, default='')
     email = models.EmailField(blank=True, default='')
     hospital_name = models.CharField(max_length=255, blank=True, default='')
     profession = models.CharField(max_length=100, blank=True, default='')
+
 
     interests = models.JSONField(default=list, blank=True)
     consent = models.BooleanField(default=True)
