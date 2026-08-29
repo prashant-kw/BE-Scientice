@@ -475,7 +475,19 @@ class PagePublicSerializer(serializers.ModelSerializer):
         fields = ['title', 'slug', 'content', 'updated_at']
 
 
+class VideoBulletinListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VideoBulletin
+        fields = [
+            'id', 'title', 'slug', 'event_title', 'eyebrow',
+            'duration_seconds', 'is_published', 'published_at',
+            'schedule_start_datetime', 'created_at', 'updated_at'
+        ]
+
+
 class VideoBulletinSerializer(serializers.ModelSerializer):
+
     backgroundImageUrl = serializers.SerializerMethodField()
     customAvatarImageUrl = serializers.SerializerMethodField()
     promoBannerImageUrl = serializers.SerializerMethodField()
@@ -537,7 +549,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         if obj.loop_start_clip_id:
             q_filter |= models.Q(id=obj.loop_start_clip_id)
 
-        qs = VideoBulletin.objects.filter(q_filter).distinct().order_by('created_at', 'id')
+        qs = VideoBulletin.objects.filter(q_filter, is_published=True).distinct().order_by('created_at', 'id')
+
 
         playlist = []
         for item in qs:
@@ -546,16 +559,22 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'id': item.id,
                 'title': item.title,
                 'slug': item.slug,
+                'is_published': item.is_published,
                 'loop_start_clip': item.loop_start_clip_id,
                 'videoUrl': v_url,
                 'summary': item.summary,
                 'bullet_points': item.bullet_points,
                 'duration_seconds': item.duration_seconds,
+                'schedule_start_datetime': item.schedule_start_datetime,
+                'event_start_datetime': item.event_start_datetime,
+                'launch_datetime': item.launch_datetime,
                 'published_at': item.published_at,
                 'created_at': item.created_at,
+
                 'backgroundImageUrl': self._url(item.background_image, item.background_image_url),
                 'customAvatarImageUrl': self._url(item.custom_avatar_image),
             })
+
         return playlist
 
 
@@ -611,9 +630,14 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
             'duration_seconds', 'launch_datetime',
             'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
             'schedule_start_datetime', 'schedule_end_datetime',
+<<<<<<< HEAD
             'show_esc_guidelines_popup', 'esc_guidelines_badge_text', 'esc_guidelines',
             'published_at', 'updated_at',
+=======
+            'is_published', 'published_at', 'updated_at',
+>>>>>>> 67bbf117fc57d99f6fa2c7d026596bd3e3f6ce64
         ]
+
 
 
         read_only_fields = fields

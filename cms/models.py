@@ -32,7 +32,8 @@ class VideoBulletin(TimeStampedModel):
     event_title = models.CharField(max_length=300, blank=True, default='', help_text="Custom event title to group multiple sequential video clips (e.g. ESC Congress 2026)")
     parent_event = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='sub_clips', help_text="Parent event bulletin if this is a secondary update video clip")
     loop_start_clip = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='loop_children', help_text="Target clip to loop back to when playlist finishes (e.g. Video #5)")
-    eyebrow = models.CharField(max_length=120, blank=True, default='GLOBAL CARDIOLOGY BULLETIN')
+    eyebrow = models.CharField(max_length=120, blank=True, default='')
+
 
     summary = models.TextField(blank=True, default='')
     script = models.TextField(help_text='Narration spoken by the selected avatar')
@@ -84,8 +85,44 @@ class VideoBulletin(TimeStampedModel):
         verbose_name = 'Video News Bulletin'
         verbose_name_plural = 'Video News Bulletins'
 
+    def generate_unique_slug(self):
+        import re
+        from django.utils.text import slugify
+
+        base_slug = slugify(self.title or 'video-bulletin')
+        if not base_slug:
+            base_slug = 'video-bulletin'
+
+        target_slug = slugify(self.slug) if self.slug else base_slug
+
+        # Strip any existing -clip-N suffix to find root_slug
+        match = re.match(r'^(.*?)(?:-clip-(\d+))?$', target_slug)
+        root_slug = match.group(1) if match and match.group(1) else target_slug
+
+        qs = VideoBulletin.objects.all()
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+
+        if not qs.filter(slug=target_slug).exists():
+            return target_slug
+
+        counter = 2
+        while True:
+            candidate = f"{root_slug}-clip-{counter}"
+            if not qs.filter(slug=candidate).exists():
+                return candidate
+            counter += 1
+
+    def save(self, *args, **kwargs):
+        if self.is_published and not self.published_at:
+            self.published_at = timezone.now()
+        self.slug = self.generate_unique_slug()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
+
+
 
 
 class KeyHighlightItem(TimeStampedModel):

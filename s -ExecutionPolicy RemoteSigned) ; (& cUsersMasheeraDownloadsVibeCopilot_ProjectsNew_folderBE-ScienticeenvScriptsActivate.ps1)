@@ -1,0 +1,28 @@
+[33m6aba5f9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: commit: mail integration
+[33mb541ecb[m HEAD@{1}: pull origin main: Fast-forward
+[33ma291e33[m HEAD@{2}: reset: moving to HEAD
+[33ma291e33[m HEAD@{3}: commit: implemented forgot password
+[33mbdcd801[m HEAD@{4}: commit: fixed article bug
+[33mb943ef8[m HEAD@{5}: commit: fixed voice bug issue
+[33mb1e036b[m HEAD@{6}: commit: updated code
+[33m61c02e7[m HEAD@{7}: commit: updated code
+[33maf26a2a[m HEAD@{8}: commit: updated code
+[33m674fd78[m HEAD@{9}: commit: updated code
+[33me3b1d42[m HEAD@{10}: commit: updated code
+[33m5f1bece[m HEAD@{11}: commit: updated looping
+[33mccba4c5[m HEAD@{12}: commit: updated looping
+[33m40cb07c[m HEAD@{13}: commit: updated therapy
+[33mc1cd389[m HEAD@{14}: commit: added loopback
+[33m417db04[m HEAD@{15}: commit: fixed bug
+[33mb223b89[m HEAD@{16}: commit: fixed video generation
+[33m844d3f6[m HEAD@{17}: commit: implemented multiple video generation for single event
+[33mc247708[m HEAD@{18}: commit: fixed video bulletin banner
+[33md5d2c19[m HEAD@{19}: commit: updated code
+[33mb463f75[m HEAD@{20}: commit: updated the changes disabled screenshots and screenrecording
+[33md222c8b[m HEAD@{21}: commit: image
+[33m455b521[m HEAD@{22}: commit: fixed timeout
+[33maa30ce9[m HEAD@{23}: commit: updated celery
+[33mf2eb073[m HEAD@{24}: commit (amend): Add video generation backend and CMS updates
+[33mc3a44bb[m HEAD@{25}: commit: Add video generation backend and CMS updates
+[33m44a829a[m HEAD@{26}: reset: moving to HEAD
+[33m44a829a[m HEAD@{27}: clone: from https://github.com/prashant-kw/BE-Scientice.git
