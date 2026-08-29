@@ -6,9 +6,15 @@ from rest_framework import viewsets, generics, permissions, status, filters, mix
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+
+class CMSPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 from common.permissions import IsContentEditor
+
 from common.throttling import ContactSubmissionRateThrottle
 
 from accounts.models import User
@@ -35,6 +41,7 @@ from .serializers import (
     UserCMSListSerializer,
     PageCMSSerializer,
     PagePublicSerializer,
+    VideoBulletinListSerializer,
     VideoBulletinSerializer,
     VideoBulletinPublicSerializer,
     VideoBulletinLeadSerializer,
@@ -276,7 +283,9 @@ class UserCMSViewSet(
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserCMSListSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
     filterset_fields = ['role', 'is_verified', 'is_active', 'is_staff']
     search_fields = ['email', 'full_name', 'specialty', 'license_number', 'city', 'state']
     ordering_fields = ['date_joined', 'last_login', 'full_name', 'email', 'role']
@@ -352,6 +361,8 @@ class CMSStatsView(APIView):
             'infographics_total': Infographic.objects.count(),
             'education_total': EducationResource.objects.count(),
             'therapy_areas_total': TherapyArea.objects.count(),
+            'video_bulletins_total': VideoBulletin.objects.count(),
+            'video_bulletins_published': VideoBulletin.objects.filter(is_published=True).count(),
             'messages_unread': ContactMessage.objects.filter(is_read=False).count(),
             'messages_total': ContactMessage.objects.count(),
             'users_total': User.objects.count(),
@@ -359,6 +370,7 @@ class CMSStatsView(APIView):
             'doctors_total': User.objects.filter(role=User.Role.DOCTOR).count(),
             'pages_total': Page.objects.count(),
         }
+
         return Response(stats)
 
 # ----------------------------------------------------------------------
@@ -393,14 +405,20 @@ class PagePublicViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
-    queryset = VideoBulletin.objects.all()
+    queryset = VideoBulletin.objects.all().order_by('-published_at', '-created_at')
     serializer_class = VideoBulletinSerializer
     permission_classes = [IsContentEditor]
-    pagination_class = None
+    pagination_class = CMSPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'summary', 'script']
+    search_fields = ['title', 'summary', 'script', 'slug']
     ordering_fields = ['published_at', 'created_at', 'title']
-    ordering = ['-published_at']
+    ordering = ['-published_at', '-created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return VideoBulletinListSerializer
+        return VideoBulletinSerializer
+
 
 
     @action(detail=True, methods=['post'])

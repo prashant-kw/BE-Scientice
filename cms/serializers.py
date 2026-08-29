@@ -475,7 +475,19 @@ class PagePublicSerializer(serializers.ModelSerializer):
         fields = ['title', 'slug', 'content', 'updated_at']
 
 
+class VideoBulletinListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VideoBulletin
+        fields = [
+            'id', 'title', 'slug', 'event_title', 'eyebrow',
+            'duration_seconds', 'is_published', 'published_at',
+            'schedule_start_datetime', 'created_at', 'updated_at'
+        ]
+
+
 class VideoBulletinSerializer(serializers.ModelSerializer):
+
     backgroundImageUrl = serializers.SerializerMethodField()
     customAvatarImageUrl = serializers.SerializerMethodField()
     promoBannerImageUrl = serializers.SerializerMethodField()
