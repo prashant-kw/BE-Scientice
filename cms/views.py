@@ -6,12 +6,16 @@ from rest_framework import viewsets, generics, permissions, status, filters, mix
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
+
 
 class CMSPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
+
 
 from common.permissions import IsContentEditor
 
