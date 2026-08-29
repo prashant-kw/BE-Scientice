@@ -495,6 +495,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
             'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
             'schedule_start_datetime', 'schedule_end_datetime',
+            'show_esc_guidelines_popup', 'esc_guidelines_badge_text', 'esc_guidelines',
             'is_published', 'published_at', 'created_at', 'updated_at',
         ]
 
@@ -583,6 +584,12 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             cleaned.append(sanitize_plain_text(point))
         return cleaned
 
+    def validate_esc_guidelines(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError('ESC Guidelines must be a list of objects.')
+        return value
+
+
 
     def validate_background_image(self, value):
         return validate_and_clean_image(value)
@@ -604,6 +611,7 @@ class VideoBulletinPublicSerializer(VideoBulletinSerializer):
             'duration_seconds', 'launch_datetime',
             'show_countdown_timer', 'event_start_datetime', 'event_timer_label',
             'schedule_start_datetime', 'schedule_end_datetime',
+            'show_esc_guidelines_popup', 'esc_guidelines_badge_text', 'esc_guidelines',
             'published_at', 'updated_at',
         ]
 
