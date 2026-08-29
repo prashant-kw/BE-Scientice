@@ -524,9 +524,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if obj.promo_banner_image:
             return build_absolute_media_url(request, obj.promo_banner_image)
-        if obj.background_image:
-            return build_absolute_media_url(request, obj.background_image)
-        return build_absolute_media_url(request, obj.background_image_url or '')
+        return ''
+
 
 
 
@@ -548,7 +547,20 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         if obj.loop_start_clip_id:
             q_filter |= models.Q(id=obj.loop_start_clip_id)
 
-        qs = VideoBulletin.objects.filter(q_filter, is_published=True).distinct().order_by('created_at', 'id')
+        from django.utils import timezone
+        now = timezone.now()
+        qs = VideoBulletin.objects.filter(
+            q_filter,
+            is_published=True
+        ).filter(
+            models.Q(schedule_start_datetime__isnull=True) | models.Q(schedule_start_datetime__lte=now)
+        ).distinct().order_by(
+            models.F('schedule_start_datetime').asc(nulls_last=True),
+            models.F('event_start_datetime').asc(nulls_last=True),
+            'created_at',
+            'id'
+        )
+
 
 
         playlist = []
