@@ -495,7 +495,8 @@ class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
         qs = VideoBulletin.objects.filter(is_published=True)
         if self.action == 'list':
             qs = qs.filter(
-                models.Q(schedule_end_datetime__isnull=True) | models.Q(schedule_end_datetime__gte=now)
+                (models.Q(schedule_start_datetime__isnull=True) | models.Q(schedule_start_datetime__lte=now)) &
+                (models.Q(schedule_end_datetime__isnull=True) | models.Q(schedule_end_datetime__gte=now))
             )
         return qs.order_by(
             models.F('schedule_start_datetime').desc(nulls_last=True),
@@ -504,6 +505,7 @@ class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
             '-published_at',
             '-created_at'
         )
+
 
 
 
