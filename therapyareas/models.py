@@ -26,3 +26,29 @@ class TherapyArea(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+class TherapySubArea(TimeStampedModel):
+    therapy_area = models.ForeignKey(
+        TherapyArea,
+        on_delete=models.CASCADE,
+        related_name='sub_areas',
+        help_text='Parent therapy area specialty'
+    )
+    name = models.CharField(max_length=150, help_text='Sub-specialty name (e.g. Heart Failure)')
+    slug = models.SlugField(max_length=160, blank=True)
+    order = models.PositiveIntegerField(default=0, help_text='Display ordering index')
+    is_active = models.BooleanField(default=True, help_text='Controls whether this sub-specialty is visible')
+
+    class Meta:
+        verbose_name = 'Therapy Sub-Area'
+        verbose_name_plural = 'Therapy Sub-Areas'
+        ordering = ['therapy_area', 'order', 'name']
+        unique_together = ('therapy_area', 'name')
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.therapy_area.name}-{self.name}")[:160]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.therapy_area.name} - {self.name}"

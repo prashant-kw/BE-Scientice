@@ -8,6 +8,7 @@ from .views import (
     EducationResourceCMSViewSet,
     InfographicCMSViewSet,
     TherapyAreaCMSViewSet,
+    TherapySubAreaCMSViewSet,
     SiteInfoCMSView,
     ContactMessageCMSViewSet,
     UserCMSViewSet,
@@ -36,6 +37,7 @@ router.register(r'education-categories', EducationCategoryCMSViewSet, basename='
 router.register(r'education', EducationResourceCMSViewSet, basename='cms-education')
 router.register(r'infographics', InfographicCMSViewSet, basename='cms-infographics')
 router.register(r'therapy-areas', TherapyAreaCMSViewSet, basename='cms-therapy-areas')
+router.register(r'therapy-sub-areas', TherapySubAreaCMSViewSet, basename='cms-therapy-sub-areas')
 router.register(r'section-visibility', ContentSectionVisibilityCMSViewSet, basename='cms-section-visibility')
 router.register(r'messages', ContactMessageCMSViewSet, basename='cms-messages')
 router.register(r'users', UserCMSViewSet, basename='cms-users')

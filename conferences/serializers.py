@@ -11,6 +11,8 @@ class ConferenceSerializer(serializers.ModelSerializer):
     cmeCredits = serializers.IntegerField(source='cme_credits', read_only=True)
     image = serializers.SerializerMethodField()
     documentUrl = serializers.SerializerMethodField()
+    organizerName = serializers.CharField(source='organizer.name', read_only=True, default=None)
+    organizerCode = serializers.CharField(source='organizer.code', read_only=True, default=None)
 
     class Meta:
         model = Conference
@@ -20,6 +22,8 @@ class ConferenceSerializer(serializers.ModelSerializer):
             'slug',
             'description',
             'agenda',
+            'organizerName',
+            'organizerCode',
             'category',
             'date',
             'startDate',

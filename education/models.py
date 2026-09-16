@@ -30,6 +30,9 @@ class EducationResource(TimeStampedModel):
     body = models.TextField(blank=True, default='', help_text='Full markdown or HTML content')
     icon = models.CharField(max_length=60, blank=True, default='')
 
+    image = models.ImageField(upload_to='education/', blank=True, null=True, help_text='Thumbnail banner image')
+    image_url = models.URLField(max_length=500, blank=True, default='', help_text='External image fallback URL')
+
     file = models.FileField(upload_to='education_docs/', blank=True, null=True, help_text='Downloadable PDF or presentation')
     external_url = models.URLField(max_length=500, blank=True, default='', help_text='Link to external course or webinar')
 
@@ -44,6 +47,12 @@ class EducationResource(TimeStampedModel):
     @property
     def file_url(self):
         return self.file.url if self.file else ''
+
+    @property
+    def image_display_url(self):
+        if self.image:
+            return self.image.url
+        return self.image_url or ''
 
     def __str__(self):
         return f"{self.title} [{self.category.get_key_display()}]"

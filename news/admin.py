@@ -25,7 +25,7 @@ class ArticleAdmin(admin.ModelAdmin):
         (None, {'fields': ('title', 'slug', 'category', 'category_name_override', 'headline_tag')}),
         ('Publication Status', {'fields': ('is_headline', 'is_published', 'published_at', 'read_time_minutes')}),
         ('Article Content', {'fields': ('summary', 'body')}),
-        ('Media & Image', {'fields': ('image', 'image_url', 'image_preview_detail')}),
+        ('Media & Documents', {'fields': ('image', 'image_url', 'image_preview_detail', 'document_url', 'document_file')}),
         ('Citations & References', {'fields': ('reference_name', 'reference_url')}),
         ('Audit Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )

@@ -8,7 +8,7 @@ from guidelines.models import Guideline
 from conferences.models import Conference, ConferenceRegistration, ConferenceCategory
 from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic, InfographicPoint
-from therapyareas.models import TherapyArea
+from therapyareas.models import TherapyArea, TherapySubArea
 from sitecontact.models import SiteInfo, ContactMessage
 from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem
 
@@ -140,7 +140,9 @@ class ConferenceCMSSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'slug', 'description', 'agenda',
             'conference_category', 'conference_category_name',
+            'organizer',
             'category', 'category_display', 'category_name_override',
+            'sub_category',
             'start_date', 'end_date', 'location',
             'is_virtual_available', 'cme_credits',
             'image', 'image_url', 'image_display_url',
@@ -370,12 +372,22 @@ class InfographicCMSSerializer(serializers.ModelSerializer):
 # ----------------------------------------------------------------------
 # 6. Therapy Area CMS Serializer
 # ----------------------------------------------------------------------
+class TherapySubAreaCMSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TherapySubArea
+        fields = ['id', 'therapy_area', 'name', 'slug', 'order', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        return sanitize_plain_text(value)
+
 class TherapyAreaCMSSerializer(serializers.ModelSerializer):
     icon_name = serializers.CharField(source='icon', required=False, allow_blank=True)
+    sub_areas = TherapySubAreaCMSSerializer(many=True, read_only=True)
 
     class Meta:
         model = TherapyArea
-        fields = ['id', 'name', 'slug', 'icon', 'icon_name', 'description', 'order', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'icon', 'icon_name', 'description', 'order', 'is_active', 'sub_areas', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def validate_name(self, value):

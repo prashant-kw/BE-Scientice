@@ -27,7 +27,7 @@ from guidelines.models import Guideline, ConferenceSociety
 from conferences.models import Conference, ConferenceRegistration, ConferenceCategory
 from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic
-from therapyareas.models import TherapyArea
+from therapyareas.models import TherapyArea, TherapySubArea
 from sitecontact.models import SiteInfo, ContactMessage
 from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem
 from .serializers import (
@@ -40,6 +40,7 @@ from .serializers import (
     EducationResourceCMSSerializer,
     InfographicCMSSerializer,
     TherapyAreaCMSSerializer,
+    TherapySubAreaCMSSerializer,
     SiteInfoCMSSerializer,
     ContactMessageCMSReadSerializer,
     UserCMSListSerializer,
@@ -215,6 +216,27 @@ class EducationResourceCMSViewSet(viewsets.ModelViewSet):
         res.is_published = not res.is_published
         res.save()
         return Response({'id': res.id, 'is_published': res.is_published})
+
+# ----------------------------------------------------------------------
+# 6.5. Therapy Sub Area CMS ViewSet
+# ----------------------------------------------------------------------
+class TherapySubAreaCMSViewSet(viewsets.ModelViewSet):
+    queryset = TherapySubArea.objects.all()
+    serializer_class = TherapySubAreaCMSSerializer
+    permission_classes = [IsContentEditor]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    search_fields = ['name']
+    ordering_fields = ['order', 'name', 'created_at']
+    ordering = ['therapy_area', 'order', 'name']
+    filterset_fields = ['therapy_area', 'is_active']
+    pagination_class = None
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        sub_area = self.get_object()
+        sub_area.is_active = not sub_area.is_active
+        sub_area.save()
+        return Response({'status': 'active toggled', 'is_active': sub_area.is_active})
 
 # ----------------------------------------------------------------------
 # 5. Infographic CMS ViewSet (with nested atomic points)

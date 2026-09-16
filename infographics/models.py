@@ -6,6 +6,7 @@ class Infographic(TimeStampedModel):
     title = models.CharField(max_length=300)
     tag = models.CharField(max_length=60, default='INFOGRAPHIC', help_text='Display badge/tag (e.g. INFOGRAPHIC, CLINICAL PATHWAY)')
     subtitle = models.TextField(blank=True, default='')
+    description = models.TextField(blank=True, default='', help_text='Brief description or summary')
     category = models.CharField(max_length=150, blank=True, default='Clinical Guidelines')
 
     image = models.ImageField(upload_to='infographics/', blank=True, null=True)

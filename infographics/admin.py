@@ -20,10 +20,10 @@ class InfographicAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'image_preview_detail')
 
     fieldsets = (
-        (None, {'fields': ('title', 'tag', 'category', 'subtitle')}),
+        (None, {'fields': ('title', 'tag', 'category', 'subtitle', 'description')}),
         ('Publication Status', {'fields': ('is_published', 'published_at')}),
         ('Highlights & Alerts', {'fields': ('quote', 'alert')}),
-        ('Media & Image', {'fields': ('image', 'image_url', 'image_preview_detail')}),
+        ('Media & Documents', {'fields': ('image', 'image_url', 'image_preview_detail', 'document_url', 'document_file')}),
         ('References', {'fields': ('reference', 'reference_url')}),
         ('Audit Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )

@@ -26,6 +26,7 @@ class InfographicSerializer(serializers.ModelSerializer):
             'tag',
             'title',
             'subtitle',
+            'description',
             'image',
             'documentUrl',
             'category',

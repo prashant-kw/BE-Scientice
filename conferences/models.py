@@ -42,6 +42,15 @@ class Conference(TimeStampedModel):
         help_text='Conference track / subcategory'
     )
 
+    organizer = models.ForeignKey(
+        'guidelines.ConferenceSociety',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='organized_conferences',
+        help_text='Organization or society hosting this conference'
+    )
+
     category = models.ForeignKey(
         TherapyArea,
         on_delete=models.SET_NULL,
@@ -49,6 +58,14 @@ class Conference(TimeStampedModel):
         blank=True,
         related_name='conferences',
         help_text='Primary therapy area specialty'
+    )
+    sub_category = models.ForeignKey(
+        'therapyareas.TherapySubArea',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='conferences',
+        help_text='Specific sub-specialty (e.g. Heart Failure)'
     )
     category_name_override = models.CharField(max_length=150, blank=True, default='')
 

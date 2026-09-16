@@ -43,11 +43,11 @@ class ConferenceAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'image_preview_detail')
 
     fieldsets = (
-        (None, {'fields': ('title', 'slug', 'category', 'category_name_override')}),
+        (None, {'fields': ('title', 'slug', 'organizer', 'category', 'sub_category', 'category_name_override')}),
         ('Dates & Venue', {'fields': ('start_date', 'end_date', 'location', 'is_virtual_available', 'cme_credits')}),
         ('Publication Status', {'fields': ('is_published',)}),
         ('Event Details & Agenda', {'fields': ('description', 'agenda')}),
-        ('Media & Image', {'fields': ('image', 'image_url', 'image_preview_detail')}),
+        ('Media & Documents', {'fields': ('image', 'image_url', 'image_preview_detail', 'document_url', 'document_file')}),
         ('Audit Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
 

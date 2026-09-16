@@ -12,6 +12,7 @@ class EducationCategorySerializer(serializers.ModelSerializer):
 class EducationResourceSerializer(serializers.ModelSerializer):
     categoryKey = serializers.CharField(source='category.key', read_only=True)
     categoryTitle = serializers.CharField(source='category.title', read_only=True)
+    imageUrl = serializers.SerializerMethodField()
     fileUrl = serializers.SerializerMethodField()
     externalUrl = serializers.CharField(source='external_url', read_only=True)
     publishedAt = serializers.DateTimeField(source='published_at', read_only=True)
@@ -24,6 +25,7 @@ class EducationResourceSerializer(serializers.ModelSerializer):
             'description',
             'body',
             'icon',
+            'imageUrl',
             'categoryKey',
             'categoryTitle',
             'fileUrl',
@@ -36,4 +38,10 @@ class EducationResourceSerializer(serializers.ModelSerializer):
         if obj.file:
             return build_absolute_media_url(request, obj.file)
         return ''
+
+    def get_imageUrl(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            return build_absolute_media_url(request, obj.image)
+        return build_absolute_media_url(request, obj.image_url)
 
