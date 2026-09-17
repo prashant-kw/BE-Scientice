@@ -11,8 +11,8 @@ class ConferenceSerializer(serializers.ModelSerializer):
     cmeCredits = serializers.IntegerField(source='cme_credits', read_only=True)
     image = serializers.SerializerMethodField()
     documentUrl = serializers.SerializerMethodField()
-    organizerName = serializers.CharField(source='organizer.name', read_only=True, default=None)
-    organizerCode = serializers.CharField(source='organizer.code', read_only=True, default=None)
+    organizerName = serializers.SerializerMethodField()
+    organizerCode = serializers.SerializerMethodField()
 
     class Meta:
         model = Conference
@@ -36,6 +36,24 @@ class ConferenceSerializer(serializers.ModelSerializer):
             'created_at',
         ]
 
+
+    def get_organizerName(self, obj):
+        if obj.organizer:
+            return obj.organizer.name
+        if obj.sub_category:
+            return obj.sub_category.name
+        return None
+
+    def get_organizerCode(self, obj):
+        if obj.organizer:
+            return obj.organizer.code
+        if obj.sub_category:
+            import re
+            match = re.search(r'\((.*?)\)', obj.sub_category.name)
+            if match:
+                return match.group(1)
+            return obj.sub_category.name
+        return None
 
     def get_image(self, obj):
         request = self.context.get('request')

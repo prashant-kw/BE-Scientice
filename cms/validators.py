@@ -75,12 +75,14 @@ def validate_and_clean_pdf(uploaded_file):
 
     try:
         uploaded_file.seek(0)
-        # Check magic bytes for PDF (%PDF-)
-        magic_bytes = uploaded_file.read(5)
-        if magic_bytes != b'%PDF-':
+        # Check magic bytes for PDF (%PDF-) within the first 1024 bytes
+        magic_bytes = uploaded_file.read(1024)
+        if b'%PDF-' not in magic_bytes:
             raise ValidationError("Invalid file content: Not a valid PDF document.")
         
         uploaded_file.seek(0)
         return uploaded_file
+    except ValidationError:
+        raise
     except Exception as e:
         raise ValidationError(f"Invalid or corrupted PDF file: {str(e)}")
