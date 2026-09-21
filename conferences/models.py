@@ -69,9 +69,9 @@ class Conference(TimeStampedModel):
     )
     category_name_override = models.CharField(max_length=150, blank=True, default='')
 
-    start_date = models.DateField()
-    end_date = models.DateField()
-    location = models.CharField(max_length=200, help_text='e.g. Paris, France or Boston, MA & Virtual')
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    location = models.CharField(max_length=200, blank=True, default='', help_text='e.g. Paris, France or Boston, MA & Virtual')
     is_virtual_available = models.BooleanField(default=True, help_text='Whether online attendance is supported')
     cme_credits = models.PositiveIntegerField(null=True, blank=True, help_text='CME / CPD credit hours')
 
