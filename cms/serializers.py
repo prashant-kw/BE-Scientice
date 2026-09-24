@@ -512,7 +512,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
             'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events', 'event_playlist',
             'background_image', 'background_image_url', 'backgroundImageUrl',
-            'promo_banner_image', 'promoBannerImageUrl',
+            'promo_banner_image', 'promoBannerImageUrl', 'promo_kicker', 'promo_headline',
             'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
 
 

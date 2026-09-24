@@ -43,6 +43,8 @@ class VideoBulletin(TimeStampedModel):
     background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', blank=True, null=True)
     background_image_url = models.URLField(max_length=500, blank=True, default='')
     promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
+    promo_kicker = models.CharField(max_length=150, blank=True, default='Scientice medical newsroom', help_text="Small top text above the main banner headline")
+    promo_headline = models.TextField(blank=True, default='Cardiovascular knowledge,\ndelivered with clinical precision', help_text="Large headline text shown on the left of the homepage banner")
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
     custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', blank=True, null=True)
