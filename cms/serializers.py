@@ -641,7 +641,7 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 class VideoBulletinPublicSerializer(VideoBulletinSerializer):
     class Meta(VideoBulletinSerializer.Meta):
         fields = [
-            'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'summary', 'script', 'bullet_points',
+            'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'promo_kicker', 'promo_headline', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events', 'event_playlist',
             'backgroundImageUrl', 'promoBannerImageUrl', 'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'customAvatarImageUrl', 'videoUrl',
 
