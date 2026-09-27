@@ -147,7 +147,7 @@ class ConferenceCMSSerializer(serializers.ModelSerializer):
             'is_virtual_available', 'cme_credits',
             'image', 'image_url', 'image_display_url',
             'document_url', 'document_file', 'effective_document_url',
-            'is_published', 'registrations_count',
+            'is_published', 'is_upcoming', 'registrations_count',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'registrations_count']

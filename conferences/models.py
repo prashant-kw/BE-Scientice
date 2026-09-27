@@ -82,6 +82,7 @@ class Conference(TimeStampedModel):
     document_file = models.FileField(upload_to='conferences_docs/', blank=True, null=True, help_text='Downloadable agenda or brochure PDF')
 
     is_published = models.BooleanField(default=True)
+    is_upcoming = models.BooleanField(default=False, help_text='Distinguishes an upcoming conference from a normal conference')
 
     class Meta:
         verbose_name = 'Conference'

@@ -33,6 +33,7 @@ class ConferenceSerializer(serializers.ModelSerializer):
             'cmeCredits',
             'image',
             'documentUrl',
+            'is_upcoming',
             'created_at',
         ]
 
