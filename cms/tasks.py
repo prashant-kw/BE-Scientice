@@ -1,3 +1,4 @@
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -24,9 +25,13 @@ def _run_template(template, **values):
     if not template:
         raise RuntimeError('The required generation command is not configured.')
     command = template.format(**{key: str(value) for key, value in values.items()})
-    # Strip quotes on individual arguments for cross-platform subprocess.run execution
-    args = [arg.strip('"\'') for arg in shlex.split(command, posix=(settings.OS_NAME != 'nt' if hasattr(settings, 'OS_NAME') else True))]
-    subprocess.run(args, check=True, timeout=45 * 60)
+    if os.name == 'nt':
+        # On Windows, run command string with shell=True to preserve backslashes in Windows file paths
+        subprocess.run(command, shell=True, check=True, timeout=45 * 60)
+    else:
+        args = shlex.split(command)
+        subprocess.run(args, check=True, timeout=45 * 60)
+
 
 
 
@@ -259,8 +264,9 @@ def _animate_avatar_replicate_with_retry(
 
 @shared_task(bind=True)
 def generate_video_bulletin(self, job_id):
-    job = VideoGenerationJob.objects.select_related('bulletin').get(pk=job_id)
+    job = VideoGenerationJob.objects.select_related('bulletin', 'bulletin__avatar_preset', 'bulletin__background_preset').get(pk=job_id)
     bulletin = job.bulletin
+
     job.task_id = self.request.id or ''
     job.started_at = timezone.now()
     job.save(update_fields=['task_id', 'started_at', 'updated_at'])
@@ -277,16 +283,30 @@ def generate_video_bulletin(self, job_id):
 
     try:
         media_root = Path(settings.MEDIA_ROOT)
-        bg_path = Path(bulletin.background_image.path) if bulletin.background_image else media_root / 'video_bulletins' / 'backgrounds' / 'prototype-newsroom.png'
-        avatar_path = Path(bulletin.custom_avatar_image.path) if bulletin.custom_avatar_image else media_root / 'video_bulletins' / 'avatars' / 'prototype-anchor.png'
+        if bulletin.background_preset and bulletin.background_preset.image:
+            bg_path = Path(bulletin.background_preset.image.path)
+        elif bulletin.background_image:
+            bg_path = Path(bulletin.background_image.path)
+        else:
+            bg_path = media_root / 'video_bulletins' / 'backgrounds' / 'prototype-newsroom.png'
+
+        if bulletin.avatar_preset and bulletin.avatar_preset.image:
+            avatar_path = Path(bulletin.avatar_preset.image.path)
+        elif bulletin.custom_avatar_image:
+            avatar_path = Path(bulletin.custom_avatar_image.path)
+        else:
+            avatar_path = media_root / 'video_bulletins' / 'avatars' / 'prototype-anchor.png'
 
         if not bg_path.exists() or not avatar_path.exists():
             raise RuntimeError('Both an avatar presenter image and a background image are required.')
         script_file.write_text(bulletin.script or 'Welcome to the Global Cardiology Bulletin.', encoding='utf-8')
 
         _update(job, VideoGenerationJob.Status.AUDIO, 15)
-        # Strictly honor the explicitly selected voice_gender field ('female' or 'male')
-        voice_gender = str(getattr(bulletin, 'voice_gender', 'female') or 'female').lower()
+        # Use avatar_preset gender if preset is selected, otherwise fallback to bulletin voice_gender
+        if bulletin.avatar_preset and bulletin.avatar_preset.gender:
+            voice_gender = str(bulletin.avatar_preset.gender).lower()
+        else:
+            voice_gender = str(getattr(bulletin, 'voice_gender', None) or 'female').lower()
 
         _run_template(settings.VIDEO_TTS_COMMAND, script_file=script_file, audio_file=audio_file,
                       avatar_file=str(avatar_path), output_dir=avatar_output, voice_gender=voice_gender)

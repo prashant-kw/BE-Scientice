@@ -29,7 +29,7 @@ from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic
 from therapyareas.models import TherapyArea, TherapySubArea
 from sitecontact.models import SiteInfo, ContactMessage
-from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem
+from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground
 from .serializers import (
     ArticleCMSSerializer,
     GuidelineCMSSerializer,
@@ -55,7 +55,10 @@ from .serializers import (
     ContentSectionPublicSerializer,
     ConferenceSocietyCMSSerializer,
     KeyHighlightItemSerializer,
+    PresenterAvatarSerializer,
+    PresenterBackgroundSerializer,
 )
+
 
 # ----------------------------------------------------------------------
 # 1. Article CMS ViewSet
@@ -454,10 +457,59 @@ class PagePublicViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
 
+class PresenterAvatarViewSet(viewsets.ModelViewSet):
+    queryset = PresenterAvatar.objects.all().order_by('-is_active', 'name')
+    serializer_class = PresenterAvatarSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'created_at', 'is_active']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        active_only = self.request.query_params.get('active_only')
+        if active_only in ['true', '1', 'True']:
+            qs = qs.filter(is_active=True)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        avatar = self.get_object()
+        avatar.is_active = not avatar.is_active
+        avatar.save(update_fields=['is_active', 'updated_at'])
+        return Response(self.get_serializer(avatar).data)
+
+
+class PresenterBackgroundViewSet(viewsets.ModelViewSet):
+    queryset = PresenterBackground.objects.all().order_by('-is_active', 'name')
+    serializer_class = PresenterBackgroundSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'created_at', 'is_active']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        active_only = self.request.query_params.get('active_only')
+        if active_only in ['true', '1', 'True']:
+            qs = qs.filter(is_active=True)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        bg = self.get_object()
+        bg.is_active = not bg.is_active
+        bg.save(update_fields=['is_active', 'updated_at'])
+        return Response(self.get_serializer(bg).data)
+
+
 class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
     queryset = VideoBulletin.objects.all().order_by('-published_at', '-created_at')
     serializer_class = VideoBulletinSerializer
     permission_classes = [IsContentEditor]
+
     pagination_class = CMSPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'summary', 'script', 'slug']
@@ -486,8 +538,9 @@ class VideoBulletinCMSViewSet(viewsets.ModelViewSet):
         bulletin = self.get_object()
 
         # Protection against accidental API credit consumption
-        has_avatar = bool(bulletin.custom_avatar_image or bulletin.avatar in ['female_doctor', 'male_doctor', 'female_anchor', 'male_anchor'])
-        has_bg = bool(bulletin.background_image or bulletin.background_image_url)
+        has_avatar = bool(bulletin.custom_avatar_image or bulletin.avatar_preset or bulletin.avatar in ['female_doctor', 'male_doctor', 'female_anchor', 'male_anchor'])
+        has_bg = bool(bulletin.background_image or bulletin.background_preset or bulletin.background_image_url)
+
 
         if not has_avatar or not has_bg:
             missing = []

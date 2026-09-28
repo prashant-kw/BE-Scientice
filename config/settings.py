@@ -228,8 +228,9 @@ import sys
 
 VIDEO_TTS_COMMAND = config(
     'VIDEO_TTS_COMMAND',
-    default=f'"{sys.executable}" "{BASE_DIR / "video_generation" / "kokoro_tts.py"}" --script-file {{script_file}} --output {{audio_file}} --voice-gender {{voice_gender}}'
+    default=f'"{sys.executable}" "{BASE_DIR / "video_generation" / "kokoro_tts.py"}" --script-file "{{script_file}}" --output "{{audio_file}}" --voice-gender {{voice_gender}}'
 )
+
 
 VIDEO_SADTALKER_COMMAND = config('VIDEO_SADTALKER_COMMAND', default='')
 REPLICATE_API_TOKEN = config('REPLICATE_API_TOKEN', default='')

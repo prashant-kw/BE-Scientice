@@ -17,8 +17,46 @@ class Page(TimeStampedModel):
         return self.title
 
 
+class PresenterAvatar(TimeStampedModel):
+    """Preset library of presenter avatars with automated voice configuration."""
+    class Gender(models.TextChoices):
+        FEMALE = 'female', 'Female'
+        MALE = 'male', 'Male'
+
+    name = models.CharField(max_length=150, help_text="Display name (e.g. Dr. Sarah - Cardiologist)")
+    image = models.ImageField(upload_to='avatars/presets/', help_text="Presenter portrait cutout image (PNG/JPG)")
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.FEMALE, help_text="Avatar gender (automatically controls AI voice generation)")
+    is_active = models.BooleanField(default=True, db_index=True, help_text="Toggle active/deactivated status")
+
+    class Meta:
+        ordering = ['-is_active', 'name']
+        verbose_name = 'Presenter Avatar Preset'
+        verbose_name_plural = 'Presenter Avatar Presets'
+
+    def __str__(self):
+        status = 'Active' if self.is_active else 'Deactivated'
+        return f"{self.name} ({self.get_gender_display()}) [{status}]"
+
+
+class PresenterBackground(TimeStampedModel):
+    """Preset library of studio newsroom background images."""
+    name = models.CharField(max_length=150, help_text="Display name (e.g. Modern Cardiology Studio)")
+    image = models.ImageField(upload_to='backgrounds/presets/', help_text="Studio background image (16:9 1920x1080 recommended)")
+    is_active = models.BooleanField(default=True, db_index=True, help_text="Toggle active/deactivated status")
+
+    class Meta:
+        ordering = ['-is_active', 'name']
+        verbose_name = 'Presenter Background Preset'
+        verbose_name_plural = 'Presenter Background Presets'
+
+    def __str__(self):
+        status = 'Active' if self.is_active else 'Deactivated'
+        return f"{self.name} [{status}]"
+
+
 class VideoBulletin(TimeStampedModel):
     """CMS-managed presenter-style video news report."""
+
 
     class Avatar(models.TextChoices):
         FEMALE_DOCTOR = 'female_doctor', 'Female Doctor'
@@ -40,11 +78,13 @@ class VideoBulletin(TimeStampedModel):
     bullet_points = models.JSONField(default=list, blank=True)
 
 
+    background_preset = models.ForeignKey(PresenterBackground, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins', help_text="Preset background image from studio library")
     background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', blank=True, null=True)
     background_image_url = models.URLField(max_length=500, blank=True, default='')
     promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
     promo_kicker = models.CharField(max_length=150, blank=True, default='Scientice medical newsroom', help_text="Small top text above the main banner headline")
     promo_headline = models.TextField(blank=True, default='Cardiovascular knowledge,\ndelivered with clinical precision', help_text="Large headline text shown on the left of the homepage banner")
+    avatar_preset = models.ForeignKey(PresenterAvatar, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins', help_text="Preset avatar from presenter library")
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
     custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', blank=True, null=True)
@@ -52,6 +92,7 @@ class VideoBulletin(TimeStampedModel):
     avatar_scale = models.CharField(max_length=20, choices=[('standard', 'Standard (100%)'), ('medium', 'Medium (120%)'), ('large', 'Large Broadcast (140%)')], default='medium', help_text="Presenter display size scale")
     avatar_x_offset = models.FloatField(default=4.0, help_text="Presenter horizontal offset percentage (0 to 80%)")
     avatar_y_offset = models.FloatField(default=0.0, help_text="Presenter vertical offset percentage (-10 to 30%)")
+
 
 
 

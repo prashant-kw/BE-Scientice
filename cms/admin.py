@@ -1,7 +1,24 @@
 from django.contrib import admin
-from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, ContentSectionVisibility
+from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, ContentSectionVisibility, PresenterAvatar, PresenterBackground
+
+@admin.register(PresenterAvatar)
+class PresenterAvatarAdmin(admin.ModelAdmin):
+    list_display = ('name', 'gender', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('gender', 'is_active')
+    search_fields = ('name',)
+    list_editable = ('is_active',)
+
+
+@admin.register(PresenterBackground)
+class PresenterBackgroundAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+    list_editable = ('is_active',)
+
 
 @admin.register(ContentSectionVisibility)
+
 class ContentSectionVisibilityAdmin(admin.ModelAdmin):
     list_display = ('title', 'section_key', 'location', 'is_enabled', 'auto_hide_if_empty', 'display_order', 'updated_at')
     list_filter = ('is_enabled', 'location', 'auto_hide_if_empty')

@@ -10,9 +10,10 @@ from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic, InfographicPoint
 from therapyareas.models import TherapyArea, TherapySubArea
 from sitecontact.models import SiteInfo, ContactMessage
-from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem
+from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground
 
 from .sanitizers import sanitize_html, sanitize_plain_text
+
 from .validators import validate_and_clean_image, validate_and_clean_pdf
 
 # ----------------------------------------------------------------------
@@ -487,6 +488,36 @@ class PagePublicSerializer(serializers.ModelSerializer):
         fields = ['title', 'slug', 'content', 'updated_at']
 
 
+class PresenterAvatarSerializer(serializers.ModelSerializer):
+    imageUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PresenterAvatar
+        fields = ['id', 'name', 'image', 'imageUrl', 'gender', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_imageUrl(self, obj):
+        if not obj.image:
+            return ''
+        request = self.context.get('request')
+        return build_absolute_media_url(request, obj.image)
+
+
+class PresenterBackgroundSerializer(serializers.ModelSerializer):
+    imageUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PresenterBackground
+        fields = ['id', 'name', 'image', 'imageUrl', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_imageUrl(self, obj):
+        if not obj.image:
+            return ''
+        request = self.context.get('request')
+        return build_absolute_media_url(request, obj.image)
+
+
 class VideoBulletinListSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -505,15 +536,17 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
     promoBannerImageUrl = serializers.SerializerMethodField()
     videoUrl = serializers.SerializerMethodField()
     event_playlist = serializers.SerializerMethodField()
+    avatar_preset_details = PresenterAvatarSerializer(source='avatar_preset', read_only=True)
+    background_preset_details = PresenterBackgroundSerializer(source='background_preset', read_only=True)
 
     class Meta:
         model = VideoBulletin
         fields = [
             'id', 'title', 'slug', 'event_title', 'parent_event', 'loop_start_clip', 'eyebrow', 'summary', 'script', 'bullet_points',
             'key_highlights', 'previous_events', 'event_playlist',
-            'background_image', 'background_image_url', 'backgroundImageUrl',
+            'background_preset', 'background_preset_details', 'background_image', 'background_image_url', 'backgroundImageUrl',
             'promo_banner_image', 'promoBannerImageUrl', 'promo_kicker', 'promo_headline',
-            'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
+            'avatar_preset', 'avatar_preset_details', 'avatar', 'avatar_position', 'avatar_scale', 'avatar_x_offset', 'avatar_y_offset', 'voice_gender', 'custom_avatar_image', 'customAvatarImageUrl',
 
 
             'video_file', 'video_url', 'videoUrl', 'duration_seconds', 'launch_datetime',
@@ -530,7 +563,11 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         return build_absolute_media_url(request, file_value or fallback)
 
     def get_backgroundImageUrl(self, obj):
-        return self._url(obj.background_image, obj.background_image_url)
+        if obj.background_preset and obj.background_preset.image:
+            return self._url(obj.background_preset.image)
+        if obj.background_image:
+            return self._url(obj.background_image)
+        return self._url(None, obj.background_image_url)
 
     def get_promoBannerImageUrl(self, obj):
         request = self.context.get('request')
@@ -542,10 +579,15 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
 
     def get_customAvatarImageUrl(self, obj):
-        return self._url(obj.custom_avatar_image)
+        if obj.avatar_preset and obj.avatar_preset.image:
+            return self._url(obj.avatar_preset.image)
+        if obj.custom_avatar_image:
+            return self._url(obj.custom_avatar_image)
+        return ''
 
     def get_videoUrl(self, obj):
         return self._url(obj.video_file, obj.video_url)
+
 
     def get_event_playlist(self, obj):
         request = self.context.get('request')
@@ -578,6 +620,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
         playlist = []
         for item in qs:
             v_url = build_absolute_media_url(request, item.video_file or item.video_url or '')
+            bg_img = item.background_preset.image if (item.background_preset and item.background_preset.image) else item.background_image
+            av_img = item.avatar_preset.image if (item.avatar_preset and item.avatar_preset.image) else item.custom_avatar_image
             playlist.append({
                 'id': item.id,
                 'title': item.title,
@@ -594,8 +638,8 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
                 'published_at': item.published_at,
                 'created_at': item.created_at,
 
-                'backgroundImageUrl': self._url(item.background_image, item.background_image_url),
-                'customAvatarImageUrl': self._url(item.custom_avatar_image),
+                'backgroundImageUrl': self._url(bg_img, item.background_image_url),
+                'customAvatarImageUrl': self._url(av_img),
             })
 
         return playlist

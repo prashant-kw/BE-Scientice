@@ -24,6 +24,8 @@ from .views import (
     ContentSectionVisibilityCMSViewSet,
     ContentSectionPublicView,
     CMSFileUploadView,
+    PresenterAvatarViewSet,
+    PresenterBackgroundViewSet,
 )
 
 
@@ -43,10 +45,13 @@ router.register(r'messages', ContactMessageCMSViewSet, basename='cms-messages')
 router.register(r'users', UserCMSViewSet, basename='cms-users')
 router.register(r'pages', PageCMSViewSet, basename='cms-pages')
 router.register(r'public-pages', PagePublicViewSet, basename='public-pages')
+router.register(r'presenter-avatars', PresenterAvatarViewSet, basename='cms-presenter-avatars')
+router.register(r'presenter-backgrounds', PresenterBackgroundViewSet, basename='cms-presenter-backgrounds')
 router.register(r'video-bulletins', VideoBulletinCMSViewSet, basename='cms-video-bulletins')
 router.register(r'video-bulletin-leads', VideoBulletinLeadCMSViewSet, basename='cms-video-bulletin-leads')
 router.register(r'key-highlights', KeyHighlightItemCMSViewSet, basename='cms-key-highlights')
 router.register(r'public-key-highlights', KeyHighlightItemPublicViewSet, basename='public-key-highlights')
+
 
 
 urlpatterns = [
