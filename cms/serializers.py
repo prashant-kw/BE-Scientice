@@ -591,15 +591,13 @@ class VideoBulletinSerializer(serializers.ModelSerializer):
 
     def get_event_playlist(self, obj):
         request = self.context.get('request')
-        # Find all sibling clips under the same parent event, event_title, or loop_start_clip
+        # Sibling clips strictly within the same event series
         parent_id = obj.parent_event_id or obj.id
         event_title = obj.event_title.strip() if obj.event_title else ''
 
         q_filter = models.Q(id=parent_id) | models.Q(parent_event_id=parent_id)
         if event_title:
             q_filter |= models.Q(event_title__iexact=event_title)
-        if obj.loop_start_clip_id:
-            q_filter |= models.Q(id=obj.loop_start_clip_id)
 
         from django.utils import timezone
         now = timezone.now()
