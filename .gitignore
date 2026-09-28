@@ -24,6 +24,19 @@ db.sqlite3
 media/
 staticfiles/
 
+# Video generation artifacts & jobs
+video_generation/job-*/
+video_generation/chunks/
+video_generation/avatar-output/
+video_generation/*.mp4
+video_generation/*.wav
+video_generation/*.jpg
+video_generation/*.png
+video_generation/*.url
+video_generation/test*
+*.mp4
+*.wav
+
 # IDE
 .vscode/
 .idea/
