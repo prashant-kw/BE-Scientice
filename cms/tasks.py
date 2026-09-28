@@ -39,40 +39,17 @@ def _studio_still(background_path, avatar_path, output_path, x_offset=4.0, y_off
     background = Image.open(background_path).convert('RGB').resize((1280, 720), Image.Resampling.LANCZOS)
     avatar = Image.open(avatar_path).convert('RGBA')
 
-    # Advanced background removal (rembg or flood-fill alpha matting)
-    try:
-        from rembg import remove
-        avatar = remove(avatar)
-    except Exception:
-        # Fallback to high-precision flood-fill alpha matting
-        import numpy as np
-        from collections import deque
+    import numpy as np
+    arr = np.array(avatar)
 
-        arr = np.array(avatar)
-        h, w, c = arr.shape
-        visited = np.zeros((h, w), dtype=bool)
-        queue = deque()
-
-        # Seed outer boundary pixels (top row, left/right edges)
-        for x in range(w):
-            queue.append((0, x))
-            visited[0, x] = True
-        for y in range(h):
-            queue.append((y, 0))
-            visited[y, 0] = True
-            queue.append((y, w - 1))
-            visited[y, w - 1] = True
-
-        # High-precision color matting for white/off-white studio presenter backgrounds
-        for y in range(h):
-            for x in range(w):
-                r, g, b = arr[y, x][:3]
-                if r > 200 and g > 200 and b > 200:
-                    arr[y, x, 3] = 0
-                elif r > 175 and g > 175 and b > 175 and abs(int(r) - int(g)) < 18 and abs(int(g) - int(b)) < 18:
-                    arr[y, x, 3] = 0
-
-        avatar = Image.fromarray(arr)
+    # Check if the avatar already has clean alpha transparency (cutout PNG)
+    has_existing_transparency = np.any(arr[:, :, 3] < 128)
+    if not has_existing_transparency:
+        try:
+            from rembg import remove
+            avatar = remove(avatar)
+        except Exception:
+            pass
 
     # Scale sizing: standard (460, 610), medium (580, 690), large (720, 780)
     max_w, max_h = 580, 690
