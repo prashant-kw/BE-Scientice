@@ -51,23 +51,34 @@ def _studio_still(background_path, avatar_path, output_path, x_offset=4.0, y_off
         except Exception:
             pass
 
-    # Scale sizing: standard (460, 610), medium (580, 690), large (720, 780)
-    max_w, max_h = 580, 690
-    if scale == 'standard':
-        max_w, max_h = 460, 610
-    elif scale == 'large':
-        max_w, max_h = 720, 780
+    # Parse zoom scale percentage (supports standard, medium, large, or custom numbers 50-250)
+    zoom_percent = 120
+    if str(scale) == 'standard':
+        zoom_percent = 100
+    elif str(scale) == 'medium':
+        zoom_percent = 120
+    elif str(scale) == 'large':
+        zoom_percent = 140
+    else:
+        try:
+            zoom_percent = int(float(str(scale)))
+        except Exception:
+            zoom_percent = 120
 
-    avatar.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+    # Base anchor height at 100% is 610px of 720p frame (~85% height)
+    target_height = max(100, int(610 * (zoom_percent / 100.0)))
+    aspect = avatar.width / float(avatar.height)
+    target_width = max(50, int(target_height * aspect))
+
+    avatar = avatar.resize((target_width, target_height), Image.Resampling.LANCZOS)
 
     # Compute X and Y pixel positions from percentages
+    # y_offset = 0 means bottom of avatar touches bottom of frame
+    # positive y_offset moves upward, negative y_offset moves downward below bottom edge
     pos_x = int((x_offset / 100.0) * 1280)
     pos_y = 720 - avatar.height - int((y_offset / 100.0) * 720)
 
-    # Clamp bounds so avatar stays inside frame
-    pos_x = max(0, min(1280 - avatar.width, pos_x))
-    pos_y = max(0, min(720 - avatar.height, pos_y))
-
+    # Paste with alpha mask allowing natural bleed outside bottom/side edges
     background.paste(avatar, (pos_x, pos_y), avatar)
     background.save(output_path, quality=95)
 
