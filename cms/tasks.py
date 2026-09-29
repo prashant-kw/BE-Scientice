@@ -250,6 +250,66 @@ def _animate_avatar_replicate_with_retry(
 
 
 
+def _load_image_file(field_file, target_path, fallback_relative_path=None):
+    """
+    Safely resolves and downloads an ImageField/FileField to a local file path.
+    Seamlessly supports local filesystem storage, S3/remote storage, and URLs.
+    """
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if field_file:
+        # Method 1: Try reading via Django's storage layer (S3 or local storage)
+        try:
+            with field_file.open('rb') as src:
+                data = src.read()
+                if data:
+                    with open(target_path, 'wb') as dst:
+                        dst.write(data)
+            if target_path.exists() and target_path.stat().st_size > 0:
+                return target_path
+        except Exception:
+            pass
+
+        # Method 2: Try direct file path (local storage)
+        try:
+            if hasattr(field_file, 'path') and Path(field_file.path).exists():
+                import shutil
+                shutil.copy(field_file.path, target_path)
+                return target_path
+        except Exception:
+            pass
+
+        # Method 3: Try downloading via URL (S3 bucket or CDN)
+        try:
+            if hasattr(field_file, 'url') and field_file.url:
+                import requests
+                url = field_file.url
+                if url.startswith('/'):
+                    s3_endpoint = getattr(settings, 'AWS_S3_ENDPOINT_URL', 'https://idr01.zata.ai').rstrip('/')
+                    bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'vibescientice')
+                    clean_path = url.replace('/media/', '').lstrip('/')
+                    url = f"{s3_endpoint}/{bucket}/{clean_path}"
+                resp = requests.get(url, timeout=30)
+                if resp.status_code == 200 and len(resp.content) > 0:
+                    with open(target_path, 'wb') as dst:
+                        dst.write(resp.content)
+                    return target_path
+        except Exception:
+            pass
+
+    # Method 4: Fallback to local default asset
+    if fallback_relative_path:
+        media_root = Path(settings.MEDIA_ROOT)
+        fallback = media_root / fallback_relative_path
+        if fallback.exists():
+            import shutil
+            shutil.copy(fallback, target_path)
+            return target_path
+
+    return None
+
+
 @shared_task(bind=True)
 def generate_video_bulletin(self, job_id):
     job = VideoGenerationJob.objects.select_related('bulletin', 'bulletin__avatar_preset', 'bulletin__background_preset').get(pk=job_id)
@@ -270,22 +330,19 @@ def generate_video_bulletin(self, job_id):
     overlay_file = root / 'lower-third.png'
 
     try:
-        media_root = Path(settings.MEDIA_ROOT)
-        if bulletin.background_preset and bulletin.background_preset.image:
-            bg_path = Path(bulletin.background_preset.image.path)
-        elif bulletin.background_image:
-            bg_path = Path(bulletin.background_image.path)
-        else:
-            bg_path = media_root / 'video_bulletins' / 'backgrounds' / 'prototype-newsroom.png'
+        # Resolve background image (S3 or local)
+        bg_target = root / 'input-background.jpg'
+        bg_field = (bulletin.background_preset.image if bulletin.background_preset and bulletin.background_preset.image
+                    else bulletin.background_image)
+        bg_path = _load_image_file(bg_field, bg_target, fallback_relative_path='video_bulletins/backgrounds/prototype-newsroom.png')
 
-        if bulletin.avatar_preset and bulletin.avatar_preset.image:
-            avatar_path = Path(bulletin.avatar_preset.image.path)
-        elif bulletin.custom_avatar_image:
-            avatar_path = Path(bulletin.custom_avatar_image.path)
-        else:
-            avatar_path = media_root / 'video_bulletins' / 'avatars' / 'prototype-anchor.png'
+        # Resolve presenter avatar image (S3 or local)
+        avatar_target = root / 'input-avatar.png'
+        avatar_field = (bulletin.avatar_preset.image if bulletin.avatar_preset and bulletin.avatar_preset.image
+                        else bulletin.custom_avatar_image)
+        avatar_path = _load_image_file(avatar_field, avatar_target, fallback_relative_path='video_bulletins/avatars/prototype-anchor.png')
 
-        if not bg_path.exists() or not avatar_path.exists():
+        if not bg_path or not bg_path.exists() or not avatar_path or not avatar_path.exists():
             raise RuntimeError('Both an avatar presenter image and a background image are required.')
         script_file.write_text(bulletin.script or 'Welcome to the Global Cardiology Bulletin.', encoding='utf-8')
 
