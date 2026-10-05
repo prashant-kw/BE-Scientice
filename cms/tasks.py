@@ -1,3 +1,4 @@
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -24,9 +25,13 @@ def _run_template(template, **values):
     if not template:
         raise RuntimeError('The required generation command is not configured.')
     command = template.format(**{key: str(value) for key, value in values.items()})
-    # Strip quotes on individual arguments for cross-platform subprocess.run execution
-    args = [arg.strip('"\'') for arg in shlex.split(command, posix=(settings.OS_NAME != 'nt' if hasattr(settings, 'OS_NAME') else True))]
-    subprocess.run(args, check=True, timeout=45 * 60)
+    if os.name == 'nt':
+        # On Windows, run command string with shell=True to preserve backslashes in Windows file paths
+        subprocess.run(command, shell=True, check=True, timeout=45 * 60)
+    else:
+        args = shlex.split(command)
+        subprocess.run(args, check=True, timeout=45 * 60)
+
 
 
 
@@ -34,58 +39,46 @@ def _studio_still(background_path, avatar_path, output_path, x_offset=4.0, y_off
     background = Image.open(background_path).convert('RGB').resize((1280, 720), Image.Resampling.LANCZOS)
     avatar = Image.open(avatar_path).convert('RGBA')
 
-    # Advanced background removal (rembg or flood-fill alpha matting)
-    try:
-        from rembg import remove
-        avatar = remove(avatar)
-    except Exception:
-        # Fallback to high-precision flood-fill alpha matting
-        import numpy as np
-        from collections import deque
+    import numpy as np
+    arr = np.array(avatar)
 
-        arr = np.array(avatar)
-        h, w, c = arr.shape
-        visited = np.zeros((h, w), dtype=bool)
-        queue = deque()
+    # Check if the avatar already has clean alpha transparency (cutout PNG)
+    has_existing_transparency = np.any(arr[:, :, 3] < 128)
+    if not has_existing_transparency:
+        try:
+            from rembg import remove
+            avatar = remove(avatar)
+        except Exception:
+            pass
 
-        # Seed outer boundary pixels (top row, left/right edges)
-        for x in range(w):
-            queue.append((0, x))
-            visited[0, x] = True
-        for y in range(h):
-            queue.append((y, 0))
-            visited[y, 0] = True
-            queue.append((y, w - 1))
-            visited[y, w - 1] = True
+    # Parse zoom scale percentage (supports standard, medium, large, or custom numbers 50-250)
+    zoom_percent = 120
+    if str(scale) == 'standard':
+        zoom_percent = 100
+    elif str(scale) == 'medium':
+        zoom_percent = 120
+    elif str(scale) == 'large':
+        zoom_percent = 140
+    else:
+        try:
+            zoom_percent = int(float(str(scale)))
+        except Exception:
+            zoom_percent = 120
 
-        # High-precision color matting for white/off-white studio presenter backgrounds
-        for y in range(h):
-            for x in range(w):
-                r, g, b = arr[y, x][:3]
-                if r > 200 and g > 200 and b > 200:
-                    arr[y, x, 3] = 0
-                elif r > 175 and g > 175 and b > 175 and abs(int(r) - int(g)) < 18 and abs(int(g) - int(b)) < 18:
-                    arr[y, x, 3] = 0
+    # Base anchor height at 100% is 610px of 720p frame (~85% height)
+    target_height = max(100, int(610 * (zoom_percent / 100.0)))
+    aspect = avatar.width / float(avatar.height)
+    target_width = max(50, int(target_height * aspect))
 
-        avatar = Image.fromarray(arr)
-
-    # Scale sizing: standard (460, 610), medium (580, 690), large (720, 780)
-    max_w, max_h = 580, 690
-    if scale == 'standard':
-        max_w, max_h = 460, 610
-    elif scale == 'large':
-        max_w, max_h = 720, 780
-
-    avatar.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+    avatar = avatar.resize((target_width, target_height), Image.Resampling.LANCZOS)
 
     # Compute X and Y pixel positions from percentages
+    # y_offset = 0 means bottom of avatar touches bottom of frame
+    # positive y_offset moves upward, negative y_offset moves downward below bottom edge
     pos_x = int((x_offset / 100.0) * 1280)
     pos_y = 720 - avatar.height - int((y_offset / 100.0) * 720)
 
-    # Clamp bounds so avatar stays inside frame
-    pos_x = max(0, min(1280 - avatar.width, pos_x))
-    pos_y = max(0, min(720 - avatar.height, pos_y))
-
+    # Paste with alpha mask allowing natural bleed outside bottom/side edges
     background.paste(avatar, (pos_x, pos_y), avatar)
     background.save(output_path, quality=95)
 
@@ -257,10 +250,71 @@ def _animate_avatar_replicate_with_retry(
 
 
 
+def _load_image_file(field_file, target_path, fallback_relative_path=None):
+    """
+    Safely resolves and downloads an ImageField/FileField to a local file path.
+    Seamlessly supports local filesystem storage, S3/remote storage, and URLs.
+    """
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if field_file:
+        # Method 1: Try reading via Django's storage layer (S3 or local storage)
+        try:
+            with field_file.open('rb') as src:
+                data = src.read()
+                if data:
+                    with open(target_path, 'wb') as dst:
+                        dst.write(data)
+            if target_path.exists() and target_path.stat().st_size > 0:
+                return target_path
+        except Exception:
+            pass
+
+        # Method 2: Try direct file path (local storage)
+        try:
+            if hasattr(field_file, 'path') and Path(field_file.path).exists():
+                import shutil
+                shutil.copy(field_file.path, target_path)
+                return target_path
+        except Exception:
+            pass
+
+        # Method 3: Try downloading via URL (S3 bucket or CDN)
+        try:
+            if hasattr(field_file, 'url') and field_file.url:
+                import requests
+                url = field_file.url
+                if url.startswith('/'):
+                    s3_endpoint = getattr(settings, 'AWS_S3_ENDPOINT_URL', 'https://idr01.zata.ai').rstrip('/')
+                    bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'vibescientice')
+                    clean_path = url.replace('/media/', '').lstrip('/')
+                    url = f"{s3_endpoint}/{bucket}/{clean_path}"
+                resp = requests.get(url, timeout=30)
+                if resp.status_code == 200 and len(resp.content) > 0:
+                    with open(target_path, 'wb') as dst:
+                        dst.write(resp.content)
+                    return target_path
+        except Exception:
+            pass
+
+    # Method 4: Fallback to local default asset
+    if fallback_relative_path:
+        media_root = Path(settings.MEDIA_ROOT)
+        fallback = media_root / fallback_relative_path
+        if fallback.exists():
+            import shutil
+            shutil.copy(fallback, target_path)
+            return target_path
+
+    return None
+
+
 @shared_task(bind=True)
 def generate_video_bulletin(self, job_id):
-    job = VideoGenerationJob.objects.select_related('bulletin').get(pk=job_id)
+    job = VideoGenerationJob.objects.select_related('bulletin', 'bulletin__avatar_preset', 'bulletin__background_preset').get(pk=job_id)
     bulletin = job.bulletin
+
     job.task_id = self.request.id or ''
     job.started_at = timezone.now()
     job.save(update_fields=['task_id', 'started_at', 'updated_at'])
@@ -276,17 +330,28 @@ def generate_video_bulletin(self, job_id):
     overlay_file = root / 'lower-third.png'
 
     try:
-        media_root = Path(settings.MEDIA_ROOT)
-        bg_path = Path(bulletin.background_image.path) if bulletin.background_image else media_root / 'video_bulletins' / 'backgrounds' / 'prototype-newsroom.png'
-        avatar_path = Path(bulletin.custom_avatar_image.path) if bulletin.custom_avatar_image else media_root / 'video_bulletins' / 'avatars' / 'prototype-anchor.png'
+        # Resolve background image (S3 or local)
+        bg_target = root / 'input-background.jpg'
+        bg_field = (bulletin.background_preset.image if bulletin.background_preset and bulletin.background_preset.image
+                    else bulletin.background_image)
+        bg_path = _load_image_file(bg_field, bg_target, fallback_relative_path='video_bulletins/backgrounds/prototype-newsroom.png')
 
-        if not bg_path.exists() or not avatar_path.exists():
+        # Resolve presenter avatar image (S3 or local)
+        avatar_target = root / 'input-avatar.png'
+        avatar_field = (bulletin.avatar_preset.image if bulletin.avatar_preset and bulletin.avatar_preset.image
+                        else bulletin.custom_avatar_image)
+        avatar_path = _load_image_file(avatar_field, avatar_target, fallback_relative_path='video_bulletins/avatars/prototype-anchor.png')
+
+        if not bg_path or not bg_path.exists() or not avatar_path or not avatar_path.exists():
             raise RuntimeError('Both an avatar presenter image and a background image are required.')
         script_file.write_text(bulletin.script or 'Welcome to the Global Cardiology Bulletin.', encoding='utf-8')
 
         _update(job, VideoGenerationJob.Status.AUDIO, 15)
-        # Strictly honor the explicitly selected voice_gender field ('female' or 'male')
-        voice_gender = str(getattr(bulletin, 'voice_gender', 'female') or 'female').lower()
+        # Use avatar_preset gender if preset is selected, otherwise fallback to bulletin voice_gender
+        if bulletin.avatar_preset and bulletin.avatar_preset.gender:
+            voice_gender = str(bulletin.avatar_preset.gender).lower()
+        else:
+            voice_gender = str(getattr(bulletin, 'voice_gender', None) or 'female').lower()
 
         _run_template(settings.VIDEO_TTS_COMMAND, script_file=script_file, audio_file=audio_file,
                       avatar_file=str(avatar_path), output_dir=avatar_output, voice_gender=voice_gender)
