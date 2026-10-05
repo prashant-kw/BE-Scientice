@@ -47,10 +47,14 @@ def validate_and_clean_image(uploaded_file):
         img.save(output_io, format=save_format, quality=90, optimize=True)
         output_io.seek(0)
 
+        import os
+        base_name, ext = os.path.splitext(uploaded_file.name)
+        safe_name = f"{base_name[:45].strip()}{ext}"
+
         cleaned_file = InMemoryUploadedFile(
             file=output_io,
             field_name=uploaded_file.field_name if hasattr(uploaded_file, 'field_name') else 'image',
-            name=uploaded_file.name,
+            name=safe_name,
             content_type=f'image/{save_format.lower()}',
             size=output_io.getbuffer().nbytes,
             charset=None
@@ -81,6 +85,10 @@ def validate_and_clean_pdf(uploaded_file):
             raise ValidationError("Invalid file content: Not a valid PDF document.")
         
         uploaded_file.seek(0)
+        import os
+        base_name, ext = os.path.splitext(uploaded_file.name)
+        if len(uploaded_file.name) > 60:
+            uploaded_file.name = f"{base_name[:45].strip()}{ext}"
         return uploaded_file
     except ValidationError:
         raise

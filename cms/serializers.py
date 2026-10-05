@@ -173,6 +173,12 @@ class ConferenceCMSSerializer(serializers.ModelSerializer):
     def validate_agenda(self, value):
         if value is None:
             return []
+        if isinstance(value, str):
+            import json
+            try:
+                value = json.loads(value)
+            except Exception:
+                raise serializers.ValidationError("Agenda must be a JSON array / list of topics.")
         if not isinstance(value, list):
             raise serializers.ValidationError("Agenda must be a JSON array / list of topics.")
         
