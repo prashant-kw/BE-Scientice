@@ -75,11 +75,11 @@ class Conference(TimeStampedModel):
     is_virtual_available = models.BooleanField(default=True, help_text='Whether online attendance is supported')
     cme_credits = models.PositiveIntegerField(null=True, blank=True, help_text='CME / CPD credit hours')
 
-    image = models.ImageField(upload_to='conferences/', blank=True, null=True)
+    image = models.ImageField(upload_to='conferences/', max_length=500, blank=True, null=True)
     image_url = models.URLField(max_length=500, blank=True, default='')
 
     document_url = models.URLField(max_length=500, blank=True, null=True, help_text='External PDF / document link')
-    document_file = models.FileField(upload_to='conferences_docs/', blank=True, null=True, help_text='Downloadable agenda or brochure PDF')
+    document_file = models.FileField(upload_to='conferences_docs/', max_length=500, blank=True, null=True, help_text='Downloadable agenda or brochure PDF')
 
     is_published = models.BooleanField(default=True)
     is_upcoming = models.BooleanField(default=False, help_text='Distinguishes an upcoming conference from a normal conference')

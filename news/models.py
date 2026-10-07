@@ -25,14 +25,14 @@ class Article(TimeStampedModel):
         help_text='Optional compound category label (e.g. "Neurology & Endocrinology")'
     )
 
-    image = models.ImageField(upload_to='news/', blank=True, null=True)
+    image = models.ImageField(upload_to='news/', max_length=500, blank=True, null=True)
     image_url = models.URLField(max_length=500, blank=True, default='', help_text='External image fallback URL')
 
     reference_url = models.URLField(max_length=500, blank=True, default='', help_text='External reference / paper DOI URL')
     reference_name = models.CharField(max_length=200, blank=True, default='', help_text='Journal name or citation text')
 
     document_url = models.URLField(max_length=500, blank=True, null=True, help_text='External PDF / document link')
-    document_file = models.FileField(upload_to='news_docs/', blank=True, null=True, help_text='Downloadable PDF document')
+    document_file = models.FileField(upload_to='news_docs/', max_length=500, blank=True, null=True, help_text='Downloadable PDF document')
 
     headline_tag = models.CharField(max_length=50, default='HEADLINE', help_text='Tag badge displayed in hero (e.g. HEADLINE, BREAKTHROUGH)')
     is_headline = models.BooleanField(default=False, help_text='Display in top hero headline carousel')

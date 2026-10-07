@@ -24,7 +24,7 @@ class PresenterAvatar(TimeStampedModel):
         MALE = 'male', 'Male'
 
     name = models.CharField(max_length=150, help_text="Display name (e.g. Dr. Sarah - Cardiologist)")
-    image = models.ImageField(upload_to='avatars/presets/', help_text="Presenter portrait cutout image (PNG/JPG)")
+    image = models.ImageField(upload_to='avatars/presets/', max_length=500, help_text="Presenter portrait cutout image (PNG/JPG)")
     gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.FEMALE, help_text="Avatar gender (automatically controls AI voice generation)")
     is_active = models.BooleanField(default=True, db_index=True, help_text="Toggle active/deactivated status")
 
@@ -41,7 +41,7 @@ class PresenterAvatar(TimeStampedModel):
 class PresenterBackground(TimeStampedModel):
     """Preset library of studio newsroom background images."""
     name = models.CharField(max_length=150, help_text="Display name (e.g. Modern Cardiology Studio)")
-    image = models.ImageField(upload_to='backgrounds/presets/', help_text="Studio background image (16:9 1920x1080 recommended)")
+    image = models.ImageField(upload_to='backgrounds/presets/', max_length=500, help_text="Studio background image (16:9 1920x1080 recommended)")
     is_active = models.BooleanField(default=True, db_index=True, help_text="Toggle active/deactivated status")
 
     class Meta:
@@ -79,15 +79,15 @@ class VideoBulletin(TimeStampedModel):
 
 
     background_preset = models.ForeignKey(PresenterBackground, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins', help_text="Preset background image from studio library")
-    background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', blank=True, null=True)
+    background_image = models.ImageField(upload_to='video_bulletins/backgrounds/', max_length=500, blank=True, null=True)
     background_image_url = models.URLField(max_length=500, blank=True, default='')
-    promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
+    promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', max_length=500, blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
     promo_kicker = models.CharField(max_length=150, blank=True, default='Scientice medical newsroom', help_text="Small top text above the main banner headline")
     promo_headline = models.TextField(blank=True, default='Cardiovascular knowledge,\ndelivered with clinical precision', help_text="Large headline text shown on the left of the homepage banner")
     avatar_preset = models.ForeignKey(PresenterAvatar, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins', help_text="Preset avatar from presenter library")
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
-    custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', blank=True, null=True)
+    custom_avatar_image = models.ImageField(upload_to='video_bulletins/avatars/', max_length=500, blank=True, null=True)
     avatar_position = models.CharField(max_length=20, choices=[('left', 'Left Anchor'), ('center', 'Center Anchor'), ('right', 'Right Anchor')], default='left', help_text="Presenter placement position inside newsroom background")
     avatar_scale = models.CharField(max_length=50, blank=True, default='100', help_text="Presenter display size scale percentage or preset name")
     avatar_x_offset = models.FloatField(default=4.0, help_text="Presenter horizontal offset percentage (0 to 80%)")
@@ -100,7 +100,7 @@ class VideoBulletin(TimeStampedModel):
     key_highlights = models.JSONField(default=list, blank=True, help_text="Structured cards array: [{number, category, title, summary, date_str, time_str}]")
     previous_events = models.JSONField(default=list, blank=True, help_text="Archive events array: [{title, location_dates, bulletins_count, video_count}]")
 
-    video_file = models.FileField(upload_to='video_bulletins/videos/', blank=True, null=True)
+    video_file = models.FileField(upload_to='video_bulletins/videos/', max_length=500, blank=True, null=True)
     video_url = models.URLField(max_length=500, blank=True, default='')
     duration_seconds = models.PositiveIntegerField(default=0)
     launch_datetime = models.DateTimeField(default=timezone.now, help_text="Scheduled launch date and time for news timer countdown on home screen.")
@@ -220,7 +220,7 @@ class VideoGenerationJob(TimeStampedModel):
     progress = models.PositiveSmallIntegerField(default=0)
     task_id = models.CharField(max_length=255, blank=True, default='')
     error = models.TextField(blank=True, default='')
-    output_file = models.FileField(upload_to='video_bulletins/generated/', blank=True, null=True)
+    output_file = models.FileField(upload_to='video_bulletins/generated/', max_length=500, blank=True, null=True)
     started_at = models.DateTimeField(blank=True, null=True)
     completed_at = models.DateTimeField(blank=True, null=True)
 

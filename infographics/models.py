@@ -9,14 +9,14 @@ class Infographic(TimeStampedModel):
     description = models.TextField(blank=True, default='', help_text='Brief description or summary')
     category = models.CharField(max_length=150, blank=True, default='Clinical Guidelines')
 
-    image = models.ImageField(upload_to='infographics/', blank=True, null=True)
+    image = models.ImageField(upload_to='infographics/', max_length=500, blank=True, null=True)
     image_url = models.URLField(max_length=500, blank=True, default='', help_text='External infographic image URL')
 
     reference = models.CharField(max_length=300, blank=True, default='')
     reference_url = models.URLField(max_length=500, blank=True, default='')
 
     document_url = models.URLField(max_length=500, blank=True, null=True, help_text='External PDF / document link')
-    document_file = models.FileField(upload_to='infographics_docs/', blank=True, null=True, help_text='Downloadable PDF version')
+    document_file = models.FileField(upload_to='infographics_docs/', max_length=500, blank=True, null=True, help_text='Downloadable PDF version')
 
     quote = models.TextField(blank=True, default='', help_text='Key highlight quote')
     alert = models.TextField(blank=True, default='', help_text='Critical clinical alert or warning box')

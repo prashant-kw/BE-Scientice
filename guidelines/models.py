@@ -37,11 +37,11 @@ class Guideline(TimeStampedModel):
     category_name_override = models.CharField(max_length=150, blank=True, default='')
 
     summary = models.TextField(blank=True, default='', help_text='Summary of recommendations')
-    image = models.ImageField(upload_to='guidelines/', blank=True, null=True)
+    image = models.ImageField(upload_to='guidelines/', max_length=500, blank=True, null=True)
     image_url = models.URLField(max_length=500, blank=True, default='')
 
     document_url = models.URLField(max_length=500, blank=True, default='', help_text='External PDF / guideline link')
-    document_file = models.FileField(upload_to='guidelines_docs/', blank=True, null=True)
+    document_file = models.FileField(upload_to='guidelines_docs/', max_length=500, blank=True, null=True)
 
     is_published = models.BooleanField(default=True)
     published_at = models.DateTimeField(default=timezone.now)

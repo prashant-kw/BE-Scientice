@@ -30,10 +30,10 @@ class EducationResource(TimeStampedModel):
     body = models.TextField(blank=True, default='', help_text='Full markdown or HTML content')
     icon = models.CharField(max_length=60, blank=True, default='')
 
-    image = models.ImageField(upload_to='education/', blank=True, null=True, help_text='Thumbnail banner image')
+    image = models.ImageField(upload_to='education/', max_length=500, blank=True, null=True, help_text='Thumbnail banner image')
     image_url = models.URLField(max_length=500, blank=True, default='', help_text='External image fallback URL')
 
-    file = models.FileField(upload_to='education_docs/', blank=True, null=True, help_text='Downloadable PDF or presentation')
+    file = models.FileField(upload_to='education_docs/', max_length=500, blank=True, null=True, help_text='Downloadable PDF or presentation')
     external_url = models.URLField(max_length=500, blank=True, default='', help_text='Link to external course or webinar')
 
     is_published = models.BooleanField(default=True)
