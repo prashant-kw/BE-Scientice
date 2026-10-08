@@ -398,7 +398,18 @@ class TherapyAreaCMSSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def validate_name(self, value):
-        return sanitize_plain_text(value)
+        cleaned = sanitize_plain_text(value)
+        if not cleaned:
+            raise serializers.ValidationError("Specialty name cannot be empty.")
+        qs = TherapyArea.objects.filter(name__iexact=cleaned)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            existing = qs.first()
+            raise serializers.ValidationError(
+                f"Therapy specialty '{existing.name}' already exists in your directory."
+            )
+        return cleaned
 
     def validate_description(self, value):
         return sanitize_plain_text(value)

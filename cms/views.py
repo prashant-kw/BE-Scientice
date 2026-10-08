@@ -190,6 +190,7 @@ class EducationCategoryCMSViewSet(viewsets.ModelViewSet):
     queryset = EducationCategory.objects.all().prefetch_related('resources')
     serializer_class = EducationCategoryCMSSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active', 'key']
     search_fields = ['title', 'description', 'key']
@@ -268,6 +269,7 @@ class TherapyAreaCMSViewSet(viewsets.ModelViewSet):
     queryset = TherapyArea.objects.all()
     serializer_class = TherapyAreaCMSSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['name', 'description']
@@ -683,6 +685,7 @@ class ConferenceSocietyCMSViewSet(viewsets.ModelViewSet):
     queryset = ConferenceSociety.objects.all()
     serializer_class = ConferenceSocietyCMSSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['code', 'name', 'description']
@@ -704,6 +707,7 @@ class ConferenceCategoryCMSViewSet(viewsets.ModelViewSet):
     queryset = ConferenceCategory.objects.all()
     serializer_class = ConferenceCategoryCMSSerializer
     permission_classes = [IsContentEditor]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['name', 'description']

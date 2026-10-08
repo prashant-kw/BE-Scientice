@@ -14,6 +14,10 @@ try:
     print("Status Code:", response.status_code)
     if response.status_code != 200:
         print(response.data)
+    elif isinstance(response.data, list):
+        print(f"Success! Unpaginated list returned {len(response.data)} therapy areas (including all records):")
+        for item in response.data:
+            print(f" - {item.get('name')} (id: {item.get('id')}, active: {item.get('is_active')})")
     else:
         print("Success, length of data:", len(response.data.get('results', [])))
 except Exception as e:
