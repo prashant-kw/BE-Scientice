@@ -190,3 +190,53 @@ class ConferenceSocietyViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception:
             return ConferenceSociety.objects.none()
 
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.http import HttpResponse, StreamingHttpResponse
+import urllib.request
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def proxy_pdf_view(request):
+    """
+    Proxies remote/S3 PDF files through the backend to circumvent browser CORS restrictions.
+    """
+    target_url = request.GET.get('url', '').strip()
+    if not target_url:
+        return HttpResponse('Missing url parameter', status=400)
+
+    if not (target_url.startswith('http://') or target_url.startswith('https://')):
+        return HttpResponse('Invalid URL protocol', status=400)
+
+    try:
+        req = urllib.request.Request(
+            target_url,
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        )
+        remote_file = urllib.request.urlopen(req, timeout=40)
+
+        def file_iterator(file_obj, chunk_size=32768):
+            while True:
+                chunk = file_obj.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+            file_obj.close()
+
+        response = StreamingHttpResponse(
+            file_iterator(remote_file),
+            content_type='application/pdf',
+            status=200
+        )
+        response['Content-Disposition'] = 'inline; filename="document.pdf"'
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Range, Authorization, Content-Type'
+        response['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges'
+        return response
+    except Exception as exc:
+        return HttpResponse(f'Error proxying PDF: {str(exc)}', status=502)
+
+
