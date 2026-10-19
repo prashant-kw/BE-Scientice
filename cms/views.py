@@ -603,6 +603,7 @@ class VideoBulletinPublicViewSet(viewsets.ReadOnlyModelViewSet):
             models.F('schedule_start_datetime').desc(nulls_last=True),
             models.F('event_start_datetime').desc(nulls_last=True),
             models.F('launch_datetime').desc(nulls_last=True),
+            '-updated_at',
             '-published_at',
             '-created_at'
         )
