@@ -17,6 +17,8 @@ admin.site.site_header = "Scientice Content Management"
 admin.site.site_title = "Scientice Admin"
 admin.site.index_title = "Scientice Portal Administration"
 
+from cms.views import HeroBannerPublicView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 
@@ -35,6 +37,7 @@ urlpatterns = [
     path('api/infographics/', include('infographics.urls')),
     path('api/', include('sitecontact.urls')),
     path('api/cms/', include('cms.urls')),
+    path('api/hero-banner/', HeroBannerPublicView.as_view(), name='public-hero-banner'),
     path('api/video-reports/', include('cms.public_urls')),
     path('api/pages/', include(('cms.pages_urls', 'pages'), namespace='public-pages')),
 ]

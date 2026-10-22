@@ -10,7 +10,7 @@ from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic, InfographicPoint
 from therapyareas.models import TherapyArea, TherapySubArea
 from sitecontact.models import SiteInfo, ContactMessage
-from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground
+from .models import ContentSectionVisibility, Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground, HeroBanner
 
 from .sanitizers import sanitize_html, sanitize_plain_text
 
@@ -853,6 +853,47 @@ class ContentSectionPublicSerializer(serializers.ModelSerializer):
             'auto_hide_if_empty',
             'display_order',
         ]
+
+
+class HeroBannerSerializer(serializers.ModelSerializer):
+    bannerImageUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeroBanner
+        fields = [
+            'id',
+            'title',
+            'kicker',
+            'banner_image',
+            'bannerImageUrl',
+            'image_alt_text',
+            'primary_button_text',
+            'primary_button_link',
+            'secondary_button_text',
+            'secondary_button_link',
+            'show_countdown_timer',
+            'timer_label',
+            'event_start_datetime',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        if hasattr(data, '_mutable') and not data._mutable:
+            data = data.copy()
+        elif isinstance(data, dict):
+            data = data.copy()
+        if 'event_start_datetime' in data and (data['event_start_datetime'] == '' or data['event_start_datetime'] == 'null'):
+            data['event_start_datetime'] = None
+        return super().to_internal_value(data)
+
+    def get_bannerImageUrl(self, obj):
+        request = self.context.get('request')
+        if obj.banner_image:
+            return build_absolute_media_url(request, obj.banner_image)
+        return ''
 
 
 

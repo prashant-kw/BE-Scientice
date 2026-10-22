@@ -28,8 +28,9 @@ from conferences.models import Conference, ConferenceRegistration, ConferenceCat
 from education.models import EducationResource, EducationCategory
 from infographics.models import Infographic
 from therapyareas.models import TherapyArea, TherapySubArea
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from sitecontact.models import SiteInfo, ContactMessage
-from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground
+from cms.models import VideoBulletinLead, ContentSectionVisibility, Page, VideoBulletin, VideoGenerationJob, KeyHighlightItem, PresenterAvatar, PresenterBackground, HeroBanner
 from .serializers import (
     ArticleCMSSerializer,
     GuidelineCMSSerializer,
@@ -57,6 +58,7 @@ from .serializers import (
     KeyHighlightItemSerializer,
     PresenterAvatarSerializer,
     PresenterBackgroundSerializer,
+    HeroBannerSerializer,
 )
 
 
@@ -907,6 +909,56 @@ class ContentSectionPublicView(APIView):
                 'is_visible': is_visible,
             }
         return Response(result)
+
+
+class HeroBannerCMSViewSet(viewsets.ModelViewSet):
+    """
+    Dedicated CMS ViewSet to manage the homepage hero banner.
+    Fully isolated from video bulletins.
+    """
+    queryset = HeroBanner.objects.all()
+    serializer_class = HeroBannerSerializer
+    permission_classes = [IsContentEditor]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'kicker', 'secondary_button_text', 'primary_button_text']
+    ordering_fields = ['is_active', 'updated_at', 'created_at']
+    ordering = ['-is_active', '-updated_at']
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        if instance.is_active:
+            HeroBanner.objects.exclude(id=instance.id).update(is_active=False)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.is_active:
+            HeroBanner.objects.exclude(id=instance.id).update(is_active=False)
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        banner = self.get_object()
+        banner.is_active = not banner.is_active
+        banner.save(update_fields=['is_active'])
+        if banner.is_active:
+            HeroBanner.objects.exclude(id=banner.id).update(is_active=False)
+        return Response(HeroBannerSerializer(banner, context={'request': request}).data)
+
+
+class HeroBannerPublicView(APIView):
+    """
+    Public endpoint returning the active hero banner for the homepage.
+    No hardcoding: returns exactly what is active in the database.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        banner = HeroBanner.objects.filter(is_active=True).order_by('-updated_at', '-created_at').first()
+        if not banner:
+            return Response({'active': False, 'banner': None})
+        serializer = HeroBannerSerializer(banner, context={'request': request})
+        return Response({'active': True, 'banner': serializer.data})
+
 
 
 

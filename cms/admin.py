@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, ContentSectionVisibility, PresenterAvatar, PresenterBackground
+from .models import Page, VideoBulletin, VideoBulletinLead, VideoGenerationJob, KeyHighlightItem, ContentSectionVisibility, PresenterAvatar, PresenterBackground, HeroBanner
+
+@admin.register(HeroBanner)
+class HeroBannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'show_countdown_timer', 'event_start_datetime', 'updated_at')
+    list_filter = ('is_active', 'show_countdown_timer')
+    search_fields = ('title', 'kicker', 'primary_button_text', 'secondary_button_text')
+    list_editable = ('is_active',)
+
 
 @admin.register(PresenterAvatar)
 class PresenterAvatarAdmin(admin.ModelAdmin):

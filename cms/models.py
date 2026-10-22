@@ -83,7 +83,7 @@ class VideoBulletin(TimeStampedModel):
     background_image_url = models.URLField(max_length=500, blank=True, default='')
     promo_banner_image = models.ImageField(upload_to='video_bulletins/banners/', max_length=500, blank=True, null=True, help_text="Optional banner image specifically for homepage news promo card")
     promo_kicker = models.CharField(max_length=150, blank=True, default='Scientice medical newsroom', help_text="Small top text above the main banner headline")
-    promo_headline = models.TextField(blank=True, default='Cardiovascular knowledge,\ndelivered with clinical precision', help_text="Large headline text shown on the left of the homepage banner")
+    promo_headline = models.TextField(blank=True, default='', help_text="Large headline text shown on the left of the homepage banner")
     avatar_preset = models.ForeignKey(PresenterAvatar, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins', help_text="Preset avatar from presenter library")
     avatar = models.CharField(max_length=30, choices=Avatar.choices, default=Avatar.FEMALE_DOCTOR)
     voice_gender = models.CharField(max_length=10, choices=[('female', 'Female Voice'), ('male', 'Male Voice')], default='female')
@@ -405,4 +405,88 @@ class ContentSectionVisibility(TimeStampedModel):
             obj, _ = cls.objects.get_or_create(section_key=d['section_key'], defaults=d)
             created_or_found.append(obj)
         return created_or_found
+
+
+class HeroBanner(TimeStampedModel):
+    """
+    Dedicated homepage hero banner management, fully isolated from video bulletins.
+    """
+    title = models.CharField(
+        max_length=255,
+        default='',
+        blank=True,
+        help_text="Main headline on the hero banner (supports newlines)"
+    )
+    kicker = models.CharField(
+        max_length=150,
+        blank=True,
+        default='',
+        help_text="Optional small category/kicker above headline"
+    )
+    banner_image = models.ImageField(
+        upload_to='hero_banners/',
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Upload custom banner image (JPG, PNG, WebP)"
+    )
+    image_alt_text = models.CharField(
+        max_length=200,
+        blank=True,
+        default='Scientice Hero Banner'
+    )
+    primary_button_text = models.CharField(
+        max_length=100,
+        blank=True,
+        default='Watch latest report',
+        help_text="Text for the main button"
+    )
+    primary_button_link = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="Link for main button (e.g. #guidelines-home-section or URL or bulletin slug)"
+    )
+    secondary_button_text = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Optional text for bottom/secondary link button"
+    )
+    secondary_button_link = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="URL or anchor for secondary button (e.g. #guidelines-home-section)"
+    )
+    show_countdown_timer = models.BooleanField(
+        default=False,
+        help_text="Display live reverse countdown on the banner"
+    )
+    timer_label = models.CharField(
+        max_length=150,
+        blank=True,
+        default='Event Countdown',
+        help_text="Label text next to countdown pulse dot"
+    )
+    event_start_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Target datetime for countdown timer"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Toggle hero banner active status. Highest active banner is shown on homepage."
+    )
+
+    class Meta:
+        ordering = ['-is_active', '-updated_at', '-created_at']
+        verbose_name = 'Hero Banner'
+        verbose_name_plural = 'Hero Banners'
+
+    def __str__(self):
+        status = 'Active' if self.is_active else 'Inactive'
+        return f"{self.title.replace(chr(10), ' ')[:50]} [{status}]"
+
 

@@ -26,10 +26,12 @@ from .views import (
     CMSFileUploadView,
     PresenterAvatarViewSet,
     PresenterBackgroundViewSet,
+    HeroBannerCMSViewSet,
 )
 
 
 router = DefaultRouter()
+router.register(r'hero-banners', HeroBannerCMSViewSet, basename='cms-hero-banners')
 router.register(r'articles', ArticleCMSViewSet, basename='cms-articles')
 router.register(r'guidelines', GuidelineCMSViewSet, basename='cms-guidelines')
 router.register(r'societies', ConferenceSocietyCMSViewSet, basename='cms-societies')
